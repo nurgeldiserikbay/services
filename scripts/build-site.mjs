@@ -73,3 +73,51 @@ return `<!doctype html>
 };
 await writeFile(new URL("../index.html",import.meta.url),renderSite(chapters),"utf8");
 console.log("Generated index.html from "+chapters.length+" chapters.");
+
+// Extended specifications, generated from the same Markdown sources.
+function exEsc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+function exInline(s){
+ let t=exEsc(s),links=[];
+ t=t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(_,label,url)=>{const target=/^https?:\/\//.test(url)?url:"https://github.com/nurgeldiserikbay/services/blob/main/"+url;let n=links.length;links.push('<a href="'+exEsc(target)+'" target="_blank" rel="noopener noreferrer">'+label+'</a>');return "@LINK"+n+"@";});
+ t=t.replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>").replace(/(^|[^*])\*([^*]+)\*(?!\*)/g,"$1<em>$2</em>");
+ return t.replace(/@LINK(\d+)@/g,(_,i)=>links[+i]||"");
+}
+function exMd(source,id){
+ const lines=source.replace(/\r/g,"").replace(/\\`/g,"`").split("\n"),out=[];let i=0,h=0;
+ const tab=x=>x.startsWith("|")&&x.endsWith("|"),cells=x=>x.trim().replace(/^\||\|$/g,"").split("|").map(y=>y.trim());
+ const special=x=>/^(#{1,6}\s|>\s|[-*]\s|\d+\.\s|```|---+$)/.test(x)||tab(x);
+ while(i<lines.length){
+  const line=lines[i].trim(); if(!line){i++;continue}
+  if(/^#\s/.test(line)){i++;continue}
+  if(/^#{2,6}\s/.test(line)){let level=Math.min(6,line.match(/^#+/)[0].length+1),title=line.replace(/^#{2,6}\s+/,"");const anchor=id+"-h"+(++h);out.push("<h"+level+' id="'+anchor+'">'+exInline(title)+' <a class="anchor" href="#'+anchor+'" aria-label="Ссылка на раздел">#</a></h'+level+'>');i++;continue}
+  if(line.startsWith("```")){let language=line.slice(3).trim(),code=[];i++;while(i<lines.length&&!lines[i].trim().startsWith("```"))code.push(lines[i++]);if(i<lines.length)i++;out.push('<div class="code-head">'+exEsc(language||"code")+'</div><pre><code>'+exEsc(code.join("\n"))+'</code></pre>');continue}
+  if(tab(line)&&i+1<lines.length&&/^\|?[\s:-]+(?:\|[\s:-]+)+\|?$/.test(lines[i+1].trim())){let head=cells(line),rows=[];i+=2;while(i<lines.length&&tab(lines[i].trim()))rows.push(cells(lines[i++]));out.push('<div class="table-wrap"><table><thead><tr>'+head.map(c=>"<th>"+exInline(c)+"</th>").join("")+"</tr></thead><tbody>"+rows.map(r=>"<tr>"+head.map((_,j)=>"<td>"+exInline(r[j]||"")+"</td>").join("")+"</tr>").join("")+"</tbody></table></div>");continue}
+  if(line.startsWith("> ")){let q=[];while(i<lines.length&&lines[i].trim().startsWith("> "))q.push(lines[i++].trim().slice(2));out.push('<aside class="note">'+exInline(q.join(" "))+"</aside>");continue}
+  if(/^---+$/.test(line)){out.push("<hr/>");i++;continue}
+  if(/^[-*]\s/.test(line)||/^\d+\.\s/.test(line)){let ordered=/^\d+\.\s/.test(line),items=[];while(i<lines.length&&((ordered&&/^\d+\.\s/.test(lines[i].trim()))||(!ordered&&/^[-*]\s/.test(lines[i].trim()))))items.push(lines[i++].trim().replace(ordered?/^\d+\.\s/:/^[-*]\s/,""));const tag=ordered?"ol":"ul";out.push("<"+tag+">"+items.map(x=>"<li>"+exInline(x)+"</li>").join("")+"</"+tag+">");continue}
+  let p=[line];i++;while(i<lines.length&&lines[i].trim()&&!special(lines[i].trim()))p.push(lines[i++].trim());out.push("<p>"+exInline(p.join(" "))+"</p>");
+ }
+ return out.join("\n");
+}
+function extendHtml(base,extra){
+ const total=12+extra.length;
+ const d=extra.map((x,i)=>({key:x.key,md:x.md,n:String(i+13).padStart(2,"0"),id:"chapter-"+String(i+13).padStart(2,"0"),title:(x.md.split("\n").find(s=>/^#\s/.test(s))||x.key).replace(/^#\s+/,"").replace(/^\d+\.\s*/,"")}));
+ const groups={0:"ФУНКЦИИ И ПОЛЬЗОВАТЕЛЬСКИЕ СЦЕНАРИИ",6:"АРХИТЕКТУРА РЕАЛИЗАЦИИ",9:"ПЛАН, КАЧЕСТВО И БИЗНЕС",12:"ИНСТРУКЦИИ ИИ И ПРИЁМКА"};
+ const nav=d.map((x,i)=>(groups[i]?'<div class="nav-group">'+groups[i]+'</div>':"")+'<a class="nav-item" href="#'+x.id+'" data-link="'+x.id+'"><span class="nav-num">'+x.n+'</span><span>'+exEsc(x.title)+'</span></a>').join("\n");
+ const sections=d.map((x,i)=>'<section class="chapter" id="'+x.id+'" data-title="'+exEsc(x.title)+'" data-n="'+x.n+'"><div class="chapter-meta"><span>РАЗДЕЛ '+x.n+" / "+total+'</span><a href="https://github.com/nurgeldiserikbay/services/blob/main/docs/ru/'+x.key+'.md" target="_blank" rel="noopener noreferrer">Исходник ↗</a></div><h2 class="chapter-title">'+exEsc(x.title)+'</h2>'+exMd(x.md,x.id)+'<div class="chapter-next">'+(i+1<d.length?'<span>Далее</span><a href="#'+d[i+1].id+'">'+exEsc(d[i+1].title)+' →</a>':'<span>Конец документа</span><a href="#top">Вернуться к началу ↑</a>')+'</div></section>').join("\n");
+ const pointer='<span>Конец документа</span><a href="#top">Вернуться к началу ↑</a>';
+ if(!base.includes(pointer)||!base.includes("</nav>")||!base.includes("</main>"))throw Error("Base HTML shape unexpected");
+ return base
+  .replace(pointer,'<span>Далее</span><a href="#chapter-13">'+exEsc(d[0].title)+' →</a>')
+  .replace("</nav>",nav+"</nav>")
+  .replace("</main>",sections+"</main>")
+  .replace(/(<span>РАЗДЕЛ \d+ \/ )12<\/span>/g,'$1'+total+'</span>')
+  .replace(/<strong>12<\/strong><span>детальных разделов<\/span>/,'<strong>'+total+'</strong><span>детальных разделов</span>')
+  .replace("Концепция v0.1 · Рабочая документация","Концепция v0.2 · Рабочая документация")
+  .replace("Проектная спецификация v0.1","Проектная спецификация v0.2");
+}
+const extraNames=["13-functional-catalog","14-user-journeys-screens","15-permissions-matrix","16-state-machines","17-database-design","18-api-design","19-frontend-design-system","20-backend-implementation","21-admin-operations","22-delivery-roadmap","23-quality-tests-release","24-business-monetization","25-ai-development","26-acceptance-checklist"];
+const extraChapters=await Promise.all(extraNames.map(async key=>({key,md:await readFile(new URL("../docs/ru/"+key+".md",import.meta.url),"utf8")})));
+const baseHtml=await readFile(new URL("../index.html",import.meta.url),"utf8");
+await writeFile(new URL("../index.html",import.meta.url),extendHtml(baseHtml,extraChapters),"utf8");
+console.log("Extended HTML documentation to "+(12+extraChapters.length)+" chapters.");
