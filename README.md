@@ -1,53 +1,81 @@
-# Services — продуктовая и техническая документация
+# Services — единый источник продуктовой и технической документации
 
-Независимая платформа специалистов, организаций и клиентов: один человек может иметь несколько профессий, но **не более одной профессиональной страницы для одной канонической профессии**. Отзывы специалистов и компаний принадлежат разным профилям, а сотрудничество с компанией не передаёт ей профессиональную репутацию.
+**Продукт:** универсальная платформа независимых специалистов, компаний и клиентов. Один человек может вести несколько профессий, но только **одну профессиональную страницу на каждую каноническую профессию**. Профессиональная репутация сохраняется при смене места работы; компания получает только собственные отзывы.
 
-## Читать документацию как сайт
+## Читать документацию
 
-- **GitHub Pages:** https://nurgeldiserikbay.github.io/services/.
-- **Исходный HTML:** [index.html](index.html) — готовая самостоятельная HTML-страница, работает без сторонних библиотек.
-- **Исходные разделы:** [docs/ru/](docs/ru/) — Markdown для редактирования бизнес-логики и архитектуры.
+- **HTML-сайт:** https://nurgeldiserikbay.github.io/services/
+- **Готовый статический файл:** [index.html](index.html)
+- **Редактируемые Markdown-главы:** [docs/ru](docs/ru)
+- **Начальный машинный контракт API (draft):** [contracts/openapi.yaml](contracts/openapi.yaml)
+- **Архитектурное решение:** [ADR-0001](docs/adr/0001-runtime-boundaries.md)
+- **Правила ИИ:** [AGENTS.md](AGENTS.md), [глава 25](docs/ru/25-ai-development.md)
+- **План релизов:** [глава 22](docs/ru/22-delivery-roadmap.md)
+- **Критерии готовности:** [глава 26](docs/ru/26-acceptance-checklist.md)
 
-### Публикация
+Markdown — источник смысла и требований; HTML генерируется из тех же файлов автоматически при локальной сборке. HTML не редактировать вручную.
 
-Сайт развёрнут через GitHub Pages из ветки **main / (root)**. Публикация подтверждена успешным Pages deployment от 31 октября 2026. В [Settings → Pages](https://github.com/nurgeldiserikbay/services/settings/pages) источник — **Deploy from a branch**, main, /(root).
-
-После изменения Markdown сначала запусти `node scripts/build-site.mjs`, затем закоммить **и Markdown, и сгенерированный index.html**. GitHub Pages публикует index.html из main. Workflow `Validate documentation HTML` проверяет, что файл сгенерирован из актуальных исходников, и не пытается повторно деплоить сайт. Это исключает конфликт стандартного Pages deployment с собственным workflow.
-
-### Разделы
+## Содержание
 
 | № | Раздел |
 | --- | --- |
-| 01 | [Продукт, роли и границы](docs/ru/01-product.md) |
-| 02 | [Профессиональные профили: жизненный цикл](docs/ru/02-identities-lifecycle.md) |
-| 03 | [Организации, связи и услуги](docs/ru/03-organizations-services.md) |
-| 04 | [Заявки, визиты, отзывы и рекомендации](docs/ru/04-booking-reviews.md) |
-| 05 | [Конструктор страниц и отраслевые шаблоны](docs/ru/05-page-builder.md) |
-| 06 | [Безопасность, роли и приватность](docs/ru/06-security-legal.md) |
-| 07 | [Архитектура Backend API](docs/ru/07-backend-architecture.md) |
-| 08 | [Модель данных и API](docs/ru/08-data-api.md) |
-| 09 | [Frontend, PWA, Android и iOS](docs/ru/09-frontend-architecture.md) |
-| 10 | [Архитектура админ-панели](docs/ru/10-admin-architecture.md) |
-| 11 | [Инфраструктура, CI/CD и качество](docs/ru/11-infrastructure-quality.md) |
-| 12 | [Roadmap, риски и открытые решения](docs/ru/12-roadmap-decisions.md) |
+| 01 | [Продукт, роли, границы](docs/ru/01-product.md) |
+| 02 | [Профили и жизненный цикл](docs/ru/02-identities-lifecycle.md) |
+| 03 | [Организации, связи, услуги](docs/ru/03-organizations-services.md) |
+| 04 | [Заявки и независимые отзывы](docs/ru/04-booking-reviews.md) |
+| 05 | [Конструктор страниц](docs/ru/05-page-builder.md) |
+| 06 | [Безопасность и приватность](docs/ru/06-security-legal.md) |
+| 07 | [Архитектура Backend](docs/ru/07-backend-architecture.md) |
+| 08 | [Данные и REST API](docs/ru/08-data-api.md) |
+| 09 | [Frontend, PWA, Capacitor](docs/ru/09-frontend-architecture.md) |
+| 10 | [Архитектура Admin](docs/ru/10-admin-architecture.md) |
+| 11 | [CI/CD и качество](docs/ru/11-infrastructure-quality.md) |
+| 12 | [Риски и открытые решения](docs/ru/12-roadmap-decisions.md) |
+| 13 | [Полный каталог функциональности](docs/ru/13-functional-catalog.md) |
+| 14 | [Маршруты, экраны, сценарии](docs/ru/14-user-journeys-screens.md) |
+| 15 | [Матрица прав доступа](docs/ru/15-permissions-matrix.md) |
+| 16 | [Состояния и конфликтные сценарии](docs/ru/16-state-machines.md) |
+| 17 | [PostgreSQL и Prisma-модель](docs/ru/17-database-design.md) |
+| 18 | [REST/OpenAPI контракты](docs/ru/18-api-design.md) |
+| 19 | [Frontend и дизайн-система](docs/ru/19-frontend-design-system.md) |
+| 20 | [Модули и реализация Backend](docs/ru/20-backend-implementation.md) |
+| 21 | [Рабочие процессы Admin](docs/ru/21-admin-operations.md) |
+| 22 | [Поэтапный план разработки](docs/ru/22-delivery-roadmap.md) |
+| 23 | [Тесты, безопасность, релизы](docs/ru/23-quality-tests-release.md) |
+| 24 | [Бизнес-модель и рост](docs/ru/24-business-monetization.md) |
+| 25 | [Правила для ИИ-разработчиков](docs/ru/25-ai-development.md) |
+| 26 | [Проверки приёмки MVP](docs/ru/26-acceptance-checklist.md) |
 
-## Пересборка HTML локально
+## Технологии и репозитории
 
-Требуется Node.js 22+. Без npm install, внешних пакетов или сетевых запросов:
+| Репозиторий | Ответственность | Стек |
+| --- | --- | --- |
+| [services](https://github.com/nurgeldiserikbay/services) | Требования, Markdown/HTML, OpenAPI, ADR | Markdown + Node генератор |
+| [services-back](https://github.com/nurgeldiserikbay/services-back) | Бизнес-логика, данные, API, фоновые операции | NestJS, TypeScript, PostgreSQL, Prisma |
+| [services-admin](https://github.com/nurgeldiserikbay/services-admin) | Внутренняя модерация платформы | Next.js, TypeScript |
+| [services-front](https://github.com/nurgeldiserikbay/services-front) | Публичный SSR-сайт, PWA, Android/iOS | Next.js + React/Vite + Capacitor; pnpm workspaces |
+
+Redis/outbox, PostGIS, search, payment providers добавляются по необходимости и отдельным решениям, а не автоматически.
+
+## Генерация HTML
+
+Node.js 22+; не нужны npm install и внешние библиотеки:
 
 ```bash
 node scripts/build-site.mjs
+git add docs/ru index.html scripts/build-site.mjs
 ```
 
-Команда обновляет [index.html](index.html) из 12 исходных Markdown-документов. Открой `index.html` в браузере. Сайт содержит поиск, оглавление, адаптивный дизайн, тёмную тему и печать / сохранение PDF.
+На PR/пуше workflow **Validate documentation HTML** пересобирает index.html и проверяет его идентичность Markdown. GitHub Pages публикует main/(root). Для новой главы: добавить Markdown, расширить список глав в scripts/build-site.mjs, выполнить сборку и обновить это оглавление.
 
-## Четыре репозитория
+## Как делать задачи
 
-- [services](https://github.com/nurgeldiserikbay/services) — бизнес-правила и технические контракты.
-- [services-back](https://github.com/nurgeldiserikbay/services-back) — Backend API.
-- [services-admin](https://github.com/nurgeldiserikbay/services-admin) — внутренняя админ-панель платформы.
-- [services-front](https://github.com/nurgeldiserikbay/services-front) — SSR Web/PWA и Capacitor Android/iOS.
+1. Найти ID в [полном каталоге](docs/ru/13-functional-catalog.md), прочитать контекст и инварианты в 02–06.
+2. Проверить [матрицу разрешений](docs/ru/15-permissions-matrix.md), [состояния](docs/ru/16-state-machines.md), [модель данных](docs/ru/17-database-design.md).
+3. Уточнить API в [главе 18](docs/ru/18-api-design.md) и [OpenAPI](contracts/openapi.yaml), согласовать breaking changes.
+4. Реализовать в соответствующем репозитории, добавить тесты и локализации kk/ru.
+5. Проверить [DoD и release gate](docs/ru/22-delivery-roadmap.md), обновить Markdown+HTML.
 
-## Статус
+## Текущий статус и ограничения
 
-Документация **v0.1 / project blueprint**: предлагаемая модель и правила, а не утверждение, что функции уже реализованы или юридически проверены. По открытым решениям см. [roadmap](docs/ru/12-roadmap-decisions.md). Изменения бизнес-логики должны сначала отражаться в документации, потом — в API/коде с тестами.
+**Спецификация draft v0.2** — проработка целевой бизнес-логики и архитектуры. Это не доказательство наличия production-приложения. OpenAPI — начальный частичный контракт, его необходимо расширить и валидировать до использования для генерации SDK. Юридические положения Казахстана, инфраструктура и регулируемые профессии требуют отдельной проверки перед запуском. Открытые решения перечислены в [главе 12](docs/ru/12-roadmap-decisions.md).
