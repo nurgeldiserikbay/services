@@ -4,18 +4,15 @@
 
 ## Читать документацию как сайт
 
-- **GitHub Pages:** https://nurgeldiserikbay.github.io/services/ (будет доступно после первичного включения Pages и успешного деплоя).
+- **GitHub Pages:** https://nurgeldiserikbay.github.io/services/.
 - **Исходный HTML:** [index.html](index.html) — готовая самостоятельная HTML-страница, работает без сторонних библиотек.
 - **Исходные разделы:** [docs/ru/](docs/ru/) — Markdown для редактирования бизнес-логики и архитектуры.
 
-### Как один раз опубликовать сайт
+### Публикация
 
-1. Открой [Settings → Pages](https://github.com/nurgeldiserikbay/services/settings/pages).
-2. В **Build and deployment** выбери **Source: GitHub Actions**.
-3. В [Actions](https://github.com/nurgeldiserikbay/services/actions) перезапусти **Deploy documentation (GitHub Pages)**.
-4. После успешной публикации сайт откроется по указанному выше адресу.
+Сайт развёрнут через GitHub Pages из ветки **main / (root)**. Публикация подтверждена успешным Pages deployment от 31 октября 2026. В [Settings → Pages](https://github.com/nurgeldiserikbay/services/settings/pages) источник — **Deploy from a branch**, main, /(root).
 
-Автоматический workflow собирает страницу из исходных Markdown-документов при изменении документации в main. **Сборка прошла успешно; первичная публикация требует включить Pages в настройках GitHub.**
+После изменения Markdown сначала запусти `node scripts/build-site.mjs`, затем закоммить **и Markdown, и сгенерированный index.html**. GitHub Pages публикует index.html из main. Workflow `Validate documentation HTML` проверяет, что файл сгенерирован из актуальных исходников, и не пытается повторно деплоить сайт. Это исключает конфликт стандартного Pages deployment с собственным workflow.
 
 ### Разделы
 
