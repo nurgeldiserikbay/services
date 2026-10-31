@@ -1,23 +1,56 @@
-# Services — product & architecture documentation
+# Services — продуктовая и техническая документация
 
-Source of truth for the multi-profession services platform: independent personal and professional profiles, organizations, affiliations, service offers, bookings, reviews, and page composition.
+Независимая платформа специалистов, организаций и клиентов: один человек может иметь несколько профессий, но **не более одной профессиональной страницы для одной канонической профессии**. Отзывы специалистов и компаний принадлежат разным профилям, а сотрудничество с компанией не передаёт ей профессиональную репутацию.
 
-## Repositories
-- [services](https://github.com/nurgeldiserikbay/services): product, business rules, API contracts, architecture, decisions.
-- [services-back](https://github.com/nurgeldiserikbay/services-back): backend.
-- [services-admin](https://github.com/nurgeldiserikbay/services-admin): platform administration.
-- [services-front](https://github.com/nurgeldiserikbay/services-front): website, PWA, Capacitor Android/iOS.
+## Читать документацию как сайт
 
-## Core rules
-1. A user can represent one person and manage multiple professional profiles; **at most one profile per person per canonical profession**, across draft, active, hidden, archived and pending-deletion states.
-2. Every professional profile has its own services, portfolio, reviews and followers. The public personal profile can show selected professional profiles.
-3. Organizations and locations have independent profiles and reputation.
-4. A confirmed affiliation connects a professional profile to an organization/location; it does **not** transfer ownership of the profile.
-5. A service assignment links the professional to a specific company offer. Affiliation alone is not permission to deliver all company services.
-6. A review targets the service professional and/or organization/location separately, based on a concrete service experience. Professional reviews remain with the professional profile when an affiliation ends.
-7. Profile lifecycle, historical revisions, review integrity, privacy and data retention require explicit rules and audit trails.
+- **GitHub Pages:** https://nurgeldiserikbay.github.io/services/ (будет доступно после первичного включения Pages и успешного деплоя).
+- **Исходный HTML:** [index.html](index.html) — готовая самостоятельная HTML-страница, работает без сторонних библиотек.
+- **Исходные разделы:** [docs/ru/](docs/ru/) — Markdown для редактирования бизнес-логики и архитектуры.
 
-## Documentation
-Start with [product vision](docs/product/vision.md), [domain model](docs/domain/model.md), [invariants](docs/domain/invariants.md), [MVP](docs/product/mvp.md) and [development policy](docs/engineering/collaboration.md).
+### Как один раз опубликовать сайт
 
-Status: architecture and discovery groundwork, **not** production-ready or implemented features. Working project name: Services (brand not finalized).
+1. Открой [Settings → Pages](https://github.com/nurgeldiserikbay/services/settings/pages).
+2. В **Build and deployment** выбери **Source: GitHub Actions**.
+3. В [Actions](https://github.com/nurgeldiserikbay/services/actions) перезапусти **Deploy documentation (GitHub Pages)**.
+4. После успешной публикации сайт откроется по указанному выше адресу.
+
+Автоматический workflow собирает страницу из исходных Markdown-документов при изменении документации в main. **Сборка прошла успешно; первичная публикация требует включить Pages в настройках GitHub.**
+
+### Разделы
+
+| № | Раздел |
+| --- | --- |
+| 01 | [Продукт, роли и границы](docs/ru/01-product.md) |
+| 02 | [Профессиональные профили: жизненный цикл](docs/ru/02-identities-lifecycle.md) |
+| 03 | [Организации, связи и услуги](docs/ru/03-organizations-services.md) |
+| 04 | [Заявки, визиты, отзывы и рекомендации](docs/ru/04-booking-reviews.md) |
+| 05 | [Конструктор страниц и отраслевые шаблоны](docs/ru/05-page-builder.md) |
+| 06 | [Безопасность, роли и приватность](docs/ru/06-security-legal.md) |
+| 07 | [Архитектура Backend API](docs/ru/07-backend-architecture.md) |
+| 08 | [Модель данных и API](docs/ru/08-data-api.md) |
+| 09 | [Frontend, PWA, Android и iOS](docs/ru/09-frontend-architecture.md) |
+| 10 | [Архитектура админ-панели](docs/ru/10-admin-architecture.md) |
+| 11 | [Инфраструктура, CI/CD и качество](docs/ru/11-infrastructure-quality.md) |
+| 12 | [Roadmap, риски и открытые решения](docs/ru/12-roadmap-decisions.md) |
+
+## Пересборка HTML локально
+
+Требуется Node.js 22+. Без npm install, внешних пакетов или сетевых запросов:
+
+```bash
+node scripts/build-site.mjs
+```
+
+Команда обновляет [index.html](index.html) из 12 исходных Markdown-документов. Открой `index.html` в браузере. Сайт содержит поиск, оглавление, адаптивный дизайн, тёмную тему и печать / сохранение PDF.
+
+## Четыре репозитория
+
+- [services](https://github.com/nurgeldiserikbay/services) — бизнес-правила и технические контракты.
+- [services-back](https://github.com/nurgeldiserikbay/services-back) — Backend API.
+- [services-admin](https://github.com/nurgeldiserikbay/services-admin) — внутренняя админ-панель платформы.
+- [services-front](https://github.com/nurgeldiserikbay/services-front) — SSR Web/PWA и Capacitor Android/iOS.
+
+## Статус
+
+Документация **v0.1 / project blueprint**: предлагаемая модель и правила, а не утверждение, что функции уже реализованы или юридически проверены. По открытым решениям см. [roadmap](docs/ru/12-roadmap-decisions.md). Изменения бизнес-логики должны сначала отражаться в документации, потом — в API/коде с тестами.
