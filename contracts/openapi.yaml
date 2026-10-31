@@ -1,0 +1,379 @@
+openapi: 3.1.0
+info:
+  title: Services API — initial contract
+  version: 0.2.0
+  description: >
+    Проектный контракт API для MVP. На момент создания не означает,
+    что эти маршруты реализованы. Все серверные операции дополнительно проверяют ACL.
+servers:
+  - url: https://api.example.invalid/v1
+    description: Placeholder; not an actual API
+tags:
+  - name: Identity
+  - name: Professionals
+  - name: Organizations
+  - name: Bookings
+  - name: Reviews
+paths:
+  /me:
+    get:
+      tags: [Identity]
+      operationId: getMe
+      summary: Получить свою учётную запись
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: User workspace summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /me/professional-profiles:
+    get:
+      tags: [Professionals]
+      operationId: listMyProfessionalProfiles
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Own professional identities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfessionalProfile'
+    post:
+      tags: [Professionals]
+      operationId: createProfessionalProfile
+      summary: Одна страница на одну каноническую профессию
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProfessionalProfile'
+      responses:
+        '201':
+          description: Created profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfessionalProfile'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /me/professional-profiles/{id}/lifecycle:
+    post:
+      tags: [Professionals]
+      operationId: transitionProfessionalProfile
+      summary: Архив, пауза, скрытие, восстановление и удаление
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [publish, pause, hide, archive, restore, request_deletion, cancel_deletion]
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfessionalProfile'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /professionals/{slug}:
+    get:
+      tags: [Professionals]
+      operationId: getPublicProfessional
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public professional details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfessionalProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /organizations/{id}/affiliation-invites:
+    post:
+      tags: [Organizations]
+      operationId: inviteProfessional
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [professional_profile_id, relation_type]
+              properties:
+                professional_profile_id:
+                  type: string
+                  format: uuid
+                relation_type:
+                  type: string
+                  enum: [employee, contractor, renter, partner]
+      responses:
+        '201':
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  status:
+                    const: pending
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /bookings:
+    post:
+      tags: [Bookings]
+      operationId: requestBooking
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_offer_id]
+              properties:
+                service_offer_id:
+                  type: string
+                  format: uuid
+                professional_profile_id:
+                  type: [string, 'null']
+                  format: uuid
+                preferred_at:
+                  type: [string, 'null']
+                  format: date-time
+                note:
+                  type: [string, 'null']
+                  maxLength: 1000
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /experiences/{id}/reviews:
+    post:
+      tags: [Reviews]
+      operationId: createExperienceReview
+      summary: Раздельный отзыв участнику подтверждённого визита
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReview'
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  securitySchemes:
+    sessionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: AccessToken
+      description: >
+        Representative contract for mobile; web cookie session may differ
+        and requires a separate approved authentication ADR.
+  parameters:
+    ResourceId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+  schemas:
+    MeResponse:
+      type: object
+      required: [user_id, person_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        person_id:
+          type: string
+          format: uuid
+        workspace_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ProfessionalProfile:
+      type: object
+      required: [id, profession_id, lifecycle_status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        profession_id:
+          type: string
+          format: uuid
+        lifecycle_status:
+          type: string
+          enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
+        slug:
+          type: [string, 'null']
+        version:
+          type: integer
+          minimum: 1
+    CreateProfessionalProfile:
+      type: object
+      additionalProperties: false
+      required: [profession_id]
+      properties:
+        profession_id:
+          type: string
+          format: uuid
+        preferred_slug:
+          type: string
+          maxLength: 100
+    Booking:
+      type: object
+      required: [id, state, service_offer_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [requested, accepted, rejected, withdrawn, in_progress, completed, cancelled_by_client, cancelled_by_provider, reschedule_requested, disputed]
+        service_offer_id:
+          type: string
+          format: uuid
+    CreateReview:
+      type: object
+      additionalProperties: false
+      required: [target_kind, target_id, rating]
+      properties:
+        target_kind:
+          type: string
+          enum: [professional, organization, location]
+        target_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 3000
+    Review:
+      allOf:
+        - $ref: '#/components/schemas/CreateReview'
+        - type: object
+          required: [id, experience_id, status]
+          properties:
+            id:
+              type: string
+              format: uuid
+            experience_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [submitted, published, under_review, hidden, removed]
+    ApiError:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Insufficient resource permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Duplicate or invalid concurrent transition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not public or not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
