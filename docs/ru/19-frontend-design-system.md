@@ -1,0 +1,44 @@
+# 19. Frontend: архитектура, дизайн-система, доступность
+> Технический проект v0.2 · Репозиторий services-front · Планируемый стек: pnpm workspace + TypeScript.
+
+## Архитектурное решение
+Два приложения в одном репозитории: apps/web — Next.js для SEO/SSR и PWA; apps/mobile — React + Vite + Capacitor для Android/iOS, работающий со статическими web assets. Общие packages/ui, packages/features, packages/api-client, packages/auth, packages/i18n, packages/config. Capacitor WebView **не исполняет сервер Next.js**. Общий API backend; никакого приватного ключа в мобильном бандле.
+
+## Структура кода
+| Пакет | Ответственность | Запрет |
+| --- | --- | --- |
+| apps/web | Next.js app router: публичные страницы, SSR, metadata, cookies, PWA shell | Доменные правила и прямые DB запросы |
+| apps/mobile | Capacitor runtime, native adapters, deep links, push/camera, Vite bundle | Дублирование бизнес-логики |
+| packages/ui | Design tokens, формы, кнопки, карточки, таблицы, доступность | Запросы API |
+| packages/features | Разделы и view models: search, profile editor, company, booking, review | Хардкод разного поведения web/mobile |
+| packages/api-client | Generated OpenAPI client, typed errors, request interceptors | Ручное копирование DTO |
+| packages/auth | Web/mobile session strategies как сменяемые adapters | Хранение токенов в JS localStorage |
+| packages/i18n | kk/ru + en-ready namespaces, pluralization, fallback | Тексты в UI вне словаря |
+| packages/config | Feature flags, typed public config, endpoint mapping | Server-only secrets |
+
+## Маршрутизация
+Публичные SEO-маршруты — серверные, с canonical URL и контролем robots. Личный кабинет — клиентский интерактив поверх защищённого API; web использует server-rendered shell только там, где это безопасно. Mobile навигация собственная, но разделы из packages/features переиспользуются.
+
+## Состояния и запросы
+Транспорт: TanStack Query либо эквивалент, с dedupe, кешированием и инвалидацией; abort предыдущего поиска при смене фильтра; submit disabled после первого клика, но настоящее исключение дублей на backend Idempotency-Key. Необязательные optimistic updates только с rollback. Для каждого мутационного экрана: success, error, denied, stale/409, offline, retry, cancelling. API типы генерируются из OpenAPI, не копируются вручную.
+
+## Дизайн-система
+Визуальное направление: светлое, минималистичное, mobile-first, акцентные цвета с умеренным контрастом, крупные интерактивные элементы, компактное содержание без перегруженных панелей. Unified typography/tokens, радиусы, spacing, states, dark mode optional. Компоненты: Button, Link, Input, Textarea, Combobox, Modal, Dialog, Toast, ErrorState, Skeleton, ProfileCard, ServiceCard, ReviewCard, StatusBadge, WorkspaceSwitch, MediaUploader, PageBlockRenderer, FormSection.
+
+## Формы
+React Hook Form + Zod (предложение); общие схемы клиента не заменяют серверную проверку. Field-level ошибки, маски контактов, autosave с version, запрет потери черновика, подтверждение опасных операций, плавающие CTA только когда не скрывают основное содержимое.
+
+## UX по роли
+Клиент: единый поиск, профиль, услуга, заявка, мои специалисты. Профессионал: переключение профессий, статусы, редактор, сотрудничества, свои услуги. Организация: команда, предложения, филиалы, записи, управление доступами. Один user, несколько контекстов, без входа в новый аккаунт.
+
+## Доступность и локализация
+WCAG 2.2 AA как проектная цель. Семантические landmark/headings, focus management, real labels, контраст, клавиатура, Screen Reader, reduced-motion, удобный tap target. kk/ru обязательны с корректными казахскими буквами и форматированием KZT/дат/телефона, i18n fallback не должен случайно показывать сырой ключ.
+
+## Производительность
+Web Core Web Vitals, responsive images + srcset, lazy loading, intersection observer там, где нужен, route-level code splitting, избегать больших библиотек конструктора на странице поиска. Для PWA явно управлять cache policy: shell/public assets — ограниченный cache, приватные заявки/контакты — no-store.
+
+## Mobile
+Capacitor plugins: push, share, native storage/biometrics по утверждённому дизайну, camera, app links, safe areas, keyboard resize, permissions. Отдельно проверять cold start/deep links, Android Back, iOS universal links, пуши и работу при смене сетей.
+
+## Acceptance
+Публичная карточка специалиста индексируется, скрытая нет; пользователь переключается между профессиями без выхода; ошибки 409 дают понятную развилку; mobile может выполнить полный запрос/отзыв; тексты kk/ru не ломают вёрстку; нет двойной отправки.
