@@ -3,15 +3,21 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/ru/**'
-      - 'scripts/build-site.mjs'
+      - 'docs/**'
+      - 'contracts/**'
+      - 'scripts/**'
       - 'index.html'
+      - 'README.md'
+      - 'AGENTS.md'
       - '.github/workflows/deploy-docs.yml'
   pull_request:
     paths:
-      - 'docs/ru/**'
-      - 'scripts/build-site.mjs'
+      - 'docs/**'
+      - 'contracts/**'
+      - 'scripts/**'
       - 'index.html'
+      - 'README.md'
+      - 'AGENTS.md'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 permissions:
@@ -27,5 +33,6 @@ jobs:
       - name: Rebuild standalone HTML from Markdown
         run: node scripts/build-site.mjs
       - name: Ensure committed HTML matches source docs
-        run: |
-          git diff --exit-code -- index.html
+        run: git diff --exit-code -- index.html
+      - name: Check documentation structure
+        run: node scripts/check-docs.mjs
