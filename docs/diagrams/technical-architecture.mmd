@@ -1,0 +1,26 @@
+flowchart TB
+  %% Services: one platform with 4 repos. Public read caching is isolated from private writes.
+  DOCS["services: Markdown, SVG/Mermaid diagrams, ADR, OpenAPI"]
+  WEB["services-front: Next.js SSR + PWA + public search"]
+  MOBILE["services-front: React/Vite + Capacitor mobile"]
+  ADMIN["services-admin: Next.js internal moderation"]
+  EDGE["CDN / edge: cache published public pages and bounded search responses"]
+  API["services-back: NestJS modular monolith with resource ACL"]
+  DOM["Domain: Identity, Professions, Organizations, Offers, Booking, Reviews, Geo, Moderation"]
+  DB["PostgreSQL + Prisma: source of truth"]
+  WORKER["Outbox worker: notifications, search reindexing, retries"]
+  MEDIA["Object storage + media validation / scanning"]
+  OBS["Metrics, tracing, logs without personal details; backups and incident response"]
+  DOCS -. contracts and rules .-> WEB
+  DOCS -. contracts and rules .-> MOBILE
+  DOCS -. contracts and rules .-> ADMIN
+  DOCS -. contracts and rules .-> API
+  WEB --> EDGE
+  MOBILE --> EDGE
+  ADMIN --> EDGE
+  EDGE --> API
+  API --> DOM
+  DOM --> DB
+  DB --> WORKER
+  DOM --> MEDIA
+  API --> OBS
