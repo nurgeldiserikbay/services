@@ -95,13 +95,14 @@
     <div class="breadcrumbs"><button data-page="home" type="button">Поиск</button><span>›</span>Компания</div>
     <div class="detail-grid"><div class="detail-main"><div class="company-hero"><div class="company-emblem">flora<span>✳</span></div><div><span class="eyebrow">КОМПАНИЯ · САЛОН КРАСОТЫ</span><h1 id="companyHeading">Flora Studio</h1><p>Команда специалистов, пространство для красоты</p><span class="tag-white">📍 <span data-city>Караганда</span></span></div></div>
       <div class="content-panel"><div class="content-panel-top"><h2>Услуги салона</h2><button class="save-button" data-save="company" aria-pressed="false" type="button">♡ Сохранить</button></div><div class="service-line"><span class="service-symbol">✂</span><div><strong>Стрижка в Flora Studio</strong><small>Получатель заявки — компания</small></div><button class="btn btn-outline compact" type="button" data-request="company">Заявка</button></div><div class="service-line"><span class="service-symbol">✿</span><div><strong>Уход и окрашивание</strong><small>Специалист назначается компанией по согласованию</small></div><button class="btn btn-outline compact" type="button" data-request="company">Заявка</button></div></div>
-      <div class="content-panel"><h2>Команда салона</h2><p class="text-secondary">Та же профессиональная личность может выглядеть иначе внутри компании — только с согласия обеих сторон.</p><div class="team-card"><div class="team-portrait pro-bg"><div class="face-illustration"><div class="face-hair"></div><div class="face-head"></div><div class="face-neck"></div><div class="face-body"></div></div></div><div><span class="eyebrow subdued">СПЕЦИАЛИСТ В КОМПАНИИ</span><h3>Айгүл С.</h3><p>Стилист Flora Studio</p><span class="tiny-tag">Только согласованные поля профиля</span></div><button class="btn btn-primary compact" type="button" data-request="company">Запись в салон</button></div><p class="small-note">Нажатие на карточку сотрудника не переводит заявку в независимую практику.</p></div>
+      <div class="content-panel"><h2>Команда салона</h2><p class="text-secondary">Та же профессиональная личность может выглядеть иначе внутри компании — только с согласия обеих сторон.</p><div class="team-card"><div class="team-portrait pro-bg"><div class="face-illustration"><div class="face-hair"></div><div class="face-head"></div><div class="face-neck"></div><div class="face-body"></div></div></div><div><span class="eyebrow subdued">СПЕЦИАЛИСТ В КОМПАНИИ</span><h3>Айгүл С.</h3><p>Стилист Flora Studio</p><span class="tiny-tag">Только согласованные поля профиля</span></div><div class="team-actions"><button class="btn btn-outline compact" type="button" data-page="company-professional">Карточка в салоне</button><button class="btn btn-primary compact" type="button" data-request="company">Запись в салон</button></div></div><p class="small-note">Нажатие на карточку сотрудника не переводит заявку в независимую практику.</p></div>
     </div><aside class="detail-aside"><div class="contact-card"><span class="eyebrow subdued">КОРПОРАТИВНЫЙ КОНТЕКСТ</span><h2>Обратиться в Flora Studio</h2><p>Получатель: <strong>Flora Studio</strong>. Не личный профиль Айгүл.</p><button class="btn btn-primary full" data-request="company" type="button">Отправить заявку ↗</button><button class="btn btn-outline full" data-demo-contact="whatsapp" type="button">Написать в WhatsApp</button><div class="policy-mini">◷ Пример правила компании: отмена за 24 часа до принятой записи.</div></div><div class="quiet-panel"><strong>Разные роли — разные права</strong><p>Компания управляет корпоративной услугой и своими заявками. Личные часы и обращения сотрудника не раскрываются.</p></div></aside></div>
   </section>
 
   <section class="screen shell dashboard-screen" id="screen-client" aria-labelledby="clientHeading" hidden>
     <div class="section-head dashboard-head"><div><span class="eyebrow subdued">ДЕМО-КАБИНЕТ</span><h1 id="clientHeading">Здравствуйте, Нур</h1><p>Сохранённое, ваши обращения и надёжность — всё в одном месте.</p></div><span class="demo-account">● Вы вошли в демонстрационный аккаунт</span></div>
     <div class="dashboard-grid"><div class="content-panel"><span class="eyebrow subdued">МОЯ НАДЁЖНОСТЬ</span><div class="score-row"><strong id="clientScore">100</strong><span>из 100<br><small>Пример: 5 завершённых записей</small></span></div><p>Это отдельный показатель соблюдения принятых записей. Он не связан с оценками качества услуг.</p><button id="scoreInfo" class="text-link" type="button">Как считается показатель ↗</button></div><div class="content-panel"><span class="eyebrow subdued">ИЗБРАННОЕ</span><h2 id="savedCount">0 страниц</h2><p>Сохраняйте интересных специалистов и компании. Другие продавцы не видят ваши закладки.</p><div id="savedList" class="saved-list"><span class="muted">Пока пусто.</span></div></div></div>
+    <div class="content-panel" id="demoRecentRequest" hidden><div class="content-panel-top"><h2>Новое обращение</h2><button class="text-link" data-page="request-status" type="button">Открыть статус ↗</button></div><p>Демонстрационная заявка создана без реальной отправки. Продавец может принять или отклонить её.</p></div>
     <div class="content-panel big-panel"><h2>Мои обращения</h2><div class="request-item"><div class="req-status accepted">● Принята</div><div class="req-description"><strong>Стрижка · Айгүл С.</strong><small>Независимый специалист · демонстрационная запись на 12 ноября 2026, 18:00</small><small>Бесплатная отмена до 16:00 этого дня</small></div><button id="cancelSample" class="btn btn-outline compact" type="button">Отменить</button></div><div id="cancelledExample" class="request-item" hidden><div class="req-status cancelled">● Отменена</div><div class="req-description"><strong>Стрижка · Айгүл С.</strong><small id="cancelOutcome">Отмена выполнена в демонстрации</small><small>Уведомления обеим сторонам: поставлены в очередь (симуляция)</small></div></div><div id="sampleAfter" class="small-note">Вы сможете увидеть последствия своевременной и поздней отмены.</div></div>
     <div class="content-panel"><h2>Что дают аккаунты клиентам?</h2><div class="feature-tiles"><span>♡ Сохранённые страницы</span><span>▤ История своих заявок</span><span>◎ Надёжность и апелляции</span><span>✦ Отзывы при подтверждённом опыте</span></div></div>
   </section>
@@ -111,7 +112,65 @@
     <div class="seller-grid"><div class="content-panel"><h2>Способы обращения</h2><p>Включите только нужные. Стоимость и календарь не обязательны.</p><div class="switch-list"><label><span><b>Телефон</b><small>Показывать разрешённый контакт</small></span><input type="checkbox" id="channelPhone" checked></label><label><span><b>WhatsApp</b><small>Прямая связь вне платформы</small></span><input type="checkbox" id="channelWhatsapp" checked></label><label><span><b>Заявка через Services</b><small>Клиент отправляет, вы принимаете</small></span><input type="checkbox" id="channelRequest" checked></label><label><span><b>Публичные слоты</b><small>Можно не публиковать расписание</small></span><input type="checkbox" id="channelCalendar"></label></div><p class="inline-validation" id="channelValidation" aria-live="polite"></p></div>
     <div class="content-panel"><h2>Правила отмены клиентом</h2><p>Устанавливает владелец предложения. Условия видны до принятия записи и сохраняются для неё.</p><label class="field">Отмена без влияния на надёжность за<select id="cancelWindow"><option value="0">До начала записи</option><option value="2" selected>2 часа</option><option value="12">12 часов</option><option value="24">24 часа</option><option value="48">48 часов</option></select></label><div class="info-soft"><strong id="policyPreview">За 2 часа до начала</strong><p>Поздняя отмена зарегистрированным клиентом влияет на его отдельную надёжность. Отмена продавцом может влиять на надёжность продавца.</p></div></div></div>
     <div class="content-panel"><h2>Время мастера и компания</h2><div class="work-grid"><div class="work-row"><span class="work-label">Пн – Пт</span><div class="work-track"><span class="work-company">09:00–18:00 · Flora Studio</span><span class="work-personal">19:00–22:00 · Лично</span></div></div><div class="work-row"><span class="work-label">Сб</span><div class="work-track"><span class="work-company shorter">10:00–14:00 · Компания B</span></div></div></div><p class="small-note">Корпоративные часы требуют согласования. В другом контексте виден только факт недоступности, не чужие клиенты и услуги.</p></div>
+    <div class="content-panel" id="demoSellerInbox"><div class="content-panel-top"><h2>Входящие заявки</h2><button class="text-link" data-page="request-status" type="button">Статус для клиента ↗</button></div><p>Демо-инбокс. Продавец самостоятельно принимает или отклоняет заявку, без коммерческого предложения и согласования цены внутри Services.</p><div id="demoInboxBody"><span class="muted">Пока нет демонстрационных обращений.</span></div></div>
     <div class="content-panel"><div class="content-panel-top"><h2>Какие поля мастера видит компания?</h2><span class="tiny-tag">Двустороннее управление</span></div><p>Мастер разрешает поля для конкретной компании, компания выбирает подмножество. Итог — пересечение.</p><div class="permission-grid"><fieldset><legend>Разрешает специалист</legend><label><input type="checkbox" data-master-field="bio" checked> Описание</label><label><input type="checkbox" data-master-field="portrait" checked> Фото</label><label><input type="checkbox" data-master-field="portfolio"> Портфолио</label><label><input type="checkbox" data-master-field="personalPhone"> Личный телефон</label></fieldset><fieldset><legend>Выбирает компания</legend><label><input type="checkbox" data-company-field="bio" checked> Описание</label><label><input type="checkbox" data-company-field="portrait" checked> Фото</label><label><input type="checkbox" data-company-field="portfolio" checked> Портфолио</label><label><input type="checkbox" data-company-field="personalPhone" checked> Личный телефон</label></fieldset></div><div class="info-soft"><strong>В корпоративной карточке будет видно:</strong><p id="visibleCompanyFields" aria-live="polite">Описание, фото</p></div></div>
+  </section>
+
+  <section class="screen shell detail-layout" id="screen-company-professional" aria-labelledby="companyProfessionalHeading" hidden>
+    <div class="breadcrumbs"><button type="button" data-page="home">Поиск</button><span>›</span><button type="button" data-page="company">Flora Studio</button><span>›</span>Специалист салона</div>
+    <div class="embedded-company-banner">
+      <span class="eyebrow subdued">СТРАНИЦА СПЕЦИАЛИСТА В КОМПАНИИ</span>
+      <div class="embedded-company-banner-row"><strong>flora ✳</strong><span>Этот раздел оформлен компанией; запись принадлежит Flora Studio.</span><button class="btn btn-outline compact" type="button" data-page="company">В компанию</button></div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-main">
+        <div class="profile-hero embedded-profile">
+          <div id="embeddedPortrait" class="profile-picture pro-bg"><div class="face-illustration"><div class="face-hair"></div><div class="face-head"></div><div class="face-neck"></div><div class="face-body"></div></div></div>
+          <div class="profile-intro">
+            <span class="eyebrow subdued">СТИЛИСТ FLORA STUDIO</span>
+            <h1 id="companyProfessionalHeading">Айгүл С.</h1>
+            <p>Специалист команды Flora Studio</p>
+            <span class="tiny-tag">Один ProfessionalProfile · отдельное представление</span>
+          </div>
+        </div>
+        <div class="content-panel">
+          <h2>Что разрешено показывать в салоне</h2>
+          <div id="embeddedBio" class="company-field"><strong>Описание</strong><p>Специалист по стрижкам и окрашиванию. Описание доступно только если его разрешил мастер и выбрала компания.</p></div>
+          <div id="embeddedPortfolio" class="company-field" hidden><strong>Портфолио</strong><p>Пример согласованного портфолио без настоящих фотографий клиентов.</p></div>
+          <div id="embeddedPhone" class="company-field" hidden><strong>Личный контакт</strong><p>В демо личный телефон не публикуется, даже если поле разрешено. В настоящем продукте нужен отдельный публичный opt-in.</p></div>
+          <p id="embeddedNothing" class="small-note" hidden>Поля профиля скрыты по выбору одной из сторон. Компания не может опубликовать данные без разрешения мастера.</p>
+          <button class="text-link" type="button" data-page="seller">Демо: изменить разрешения ↗</button>
+        </div>
+        <div class="content-panel">
+          <h2>Услуга салона</h2>
+          <div class="service-line"><span class="service-symbol">✂</span><div><strong>Стрижка с мастером Айгүл</strong><small>Продавец и получатель заявки — Flora Studio. Айгүл — возможный исполнитель.</small></div><button class="btn btn-primary compact" type="button" data-request="company">Записаться</button></div>
+          <p class="small-note">При переходе на <button class="inline-route" type="button" data-page="professional">личную страницу специалиста</button> поменяется получатель заявки — это всегда видно.</p>
+        </div>
+      </div>
+      <aside class="detail-aside">
+        <div class="contact-card"><span class="eyebrow subdued">ВАЖНО: КОНТЕКСТ КОМПАНИИ</span><h2>Запись в Flora Studio</h2><p>Получатель: <strong>Flora Studio</strong>, не самостоятельный мастер.</p><button class="btn btn-primary full" type="button" data-request="company">Отправить заявку ↗</button><div class="policy-mini">Показанные поля — пересечение разрешений двух сторон и настроек публикации.</div></div>
+      </aside>
+    </div>
+  </section>
+  <section class="screen shell dashboard-screen" id="screen-request-status" aria-labelledby="requestStatusHeading" hidden>
+    <div class="breadcrumbs"><button type="button" data-page="home">Поиск</button><span>›</span>Демо-заявка</div>
+    <div class="section-head dashboard-head"><div><span class="eyebrow subdued">БЕЗ ОТПРАВКИ ДАННЫХ</span><h1 id="requestStatusHeading">Статус обращения</h1><p>Здесь видно, что происходит после отправки простой заявки.</p></div><span class="demo-account">ДЕМО · только память страницы</span></div>
+    <div class="request-status-grid">
+      <div class="content-panel">
+        <div class="content-panel-top"><h2 id="demoRequestNumber">Заявка ещё не создана</h2><span class="req-status" id="demoRequestStatus">Нет заявки</span></div>
+        <div class="receiver-box"><span>Получатель заявки:</span><strong id="demoRequestReceiver">—</strong><small id="demoRequestContext">Выбирается по странице, с которой обратились.</small></div>
+        <dl class="request-details"><div><dt>Запрос</dt><dd id="demoRequestNote">—</dd></div><div><dt>Желаемая дата</dt><dd id="demoRequestDate">—</dd></div><div><dt>Подтверждённое время</dt><dd id="demoRequestScheduled">Не согласовано</dd></div></dl>
+        <div class="info-soft"><strong>Правило надёжности</strong><p id="demoRequestReliability">Без принятой записи и согласованного времени автоматическое снижение надёжности клиента запрещено.</p></div>
+        <button class="btn btn-outline" id="demoCancelRequest" type="button" disabled>Отменить свою заявку</button>
+        <button class="text-link" type="button" data-page="seller">Посмотреть действие продавца ↗</button>
+      </div>
+      <div class="content-panel">
+        <h2>Журнал событий и уведомлений</h2>
+        <p>Уведомления создаются по событию. Отправка SMS, e-mail и push здесь не выполняется.</p>
+        <ol id="demoRequestEvents" class="event-log"><li>Отправьте демонстрационную заявку из профиля специалиста или компании.</li></ol>
+        <button class="text-link" type="button" data-page="professional">К личной странице ↗</button>
+      </div>
+    </div>
   </section>
 </main>
 <footer class="site-footer"><div class="shell"><div><strong>services<span>.</span></strong><p>UX-прототип для обсуждения. Все люди, рейтинги и компании вымышлены.</p></div><div><a href="index.html">Читать спецификацию</a><a href="https://github.com/nurgeldiserikbay/services/blob/main/docs/ux/mvp-screen-contracts.md" target="_blank" rel="noopener noreferrer">UX-контракты</a></div></div></footer>
