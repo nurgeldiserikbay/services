@@ -19,20 +19,24 @@ proposed → accepted → active → revoked/expired; отклонение propo
 ## ServiceOffer
 draft → active ↔ paused → archived. Изменение цены/условий создаёт новую версию для будущих заявок; принятые заявки держат snapshot. Неактивное предложение недоступно для новых заказов.
 
-## Booking
-| Исходное | Событие | Следующее | Проверки |
-| --- | --- | --- | --- |
-| draft | submit | requested | idempotency, offer active |
-| requested | accept | accepted | seller permission, price snapshot |
-| requested | reject/withdraw | rejected/withdrawn | actor, reason |
-| accepted | start | in_progress | due time, operator |
-| in_progress | complete | completed | подтверждение факта услуги |
-| accepted | cancel | cancelled_by_client/provider | cancellation rules, уведомление |
-| accepted | propose_change | reschedule_requested | новый snapshot |
-| reschedule_requested | client_accept | accepted | явное согласие |
-| completed | contest | disputed | только отдельный case, история не стирается |
+## ServiceRequest / Booking — простой MVP (ADR-0003)
+В этой версии нет коммерческого Quote, переговоров о цене, обязательного in_progress и согласования новых цен. Прямой телефон/WhatsApp **не создаёт** ServiceRequest автоматически. Заявка создаётся только при отправке формы или выборе слота внутри Services.
 
-No-show — отдельное событие, а не попытка перезаписать completed. Confirmed experience не обязательно равна completed, если исполнение оспаривается: отзыв с меткой verified требует достаточной проверки.
+| Текущий статус | Действие | Новый статус | Кому разрешено |
+| --- | --- | --- | --- |
+| — | submit | pending | Гость после OTP / авторизованный клиент |
+| pending | accept | accepted | Указанный продавец / уполномоченный оператор |
+| pending | decline | declined | Продавец / уполномоченный оператор |
+| pending | cancel | cancelled_by_customer | Автор обращения с безопасным доступом |
+| pending | expire (optional TTL) | expired | Системное событие |
+| accepted | cancel | cancelled_by_customer / cancelled_by_provider | Клиент либо продавец по своей роли |
+| accepted | complete | completed | Продавец / уполномоченный оператор |
+
+Принятая запись может иметь `scheduled_start`, `scheduled_end`, `timezone`; при договорённости по телефону продавец вправе **изменить запись и вручную обновить занятость** с сохранением истории и доступным уведомлением клиенту. Изменение даты не требует workflow коммерческого предложения. Подтверждение факта услуги для verified review остаётся отдельной процедурой.
+
+`source_context` и `seller_id` фиксируются при создании. Личная страница мастера → personal seller; страница компании, включая вложенную карточку мастера → company seller. Эти поля неизменяемы для существующей заявки, нельзя «перенаправить» её в другой контекст из-за смены работодателя.
+
+**Календарь добровольный.** Слотная проверка требует активного режима бронирования; если слот виден, пересечение подтверждённых бронирований одного исполнителя проверяется транзакционно. Часы у компании и часы независимой работы учитывают одну и ту же занятость специалиста, но детали чужого контекста не выдаются. Если клиент договорился вне Services, система о записи не знает, пока продавец не добавил блок.
 
 ## Review
 submitted → published (если eligible) → reported/under_review → retained/hidden/removed по политике → appealed → resolved. RatingAggregate асинхронно пересчитывается по допустимым опубликованным отзывам. Review.target_type и target_id неизменяемы.
