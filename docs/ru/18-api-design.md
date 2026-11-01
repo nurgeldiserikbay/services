@@ -102,3 +102,25 @@ profile.published.v1, affiliation.accepted.v1, affiliation.ended.v1, assignment.
 **Общие правила:** открытые публичные endpoints не возвращают неразрешённые компанией/мастером поля или приватную занятость. Действие по корпоративному offer не может стать заявкой независимого специалиста по подменённому `seller_id`; запрещать IDOR. Все mutating POST — idempotency, ограничение частоты и optimistic version. Гостевой контакт с OTP даёт scoped доступ к своей заявке, но не к другим данным клиента. Платформа не должна сохранять текст звонков или WhatsApp без отдельной, правомерной функции.
 
 **OpenAPI в `contracts/openapi.yaml` остаётся частичным draft:** до генерации SDK дополнить указанные endpoints, схемы и ошибочные случаи, убрать старые enum/маршруты `Quote` или переговорных стадий.
+
+## API v0.7 — настройка отмены, надёжность и уведомления
+[ADR-0004](https://github.com/nurgeldiserikbay/services/blob/main/docs/adr/0004-cancellation-reliability-and-defaults.md) — нормативная схема.
+
+| Метод (проектный контракт) | Актор | Вход и результат |
+| --- | --- | --- |
+| GET /v1/service-offers/:id/cancellation-policy | Гость | Public `free_cancel_before_minutes`, локализованная политика, если есть слот |
+| PUT /v1/service-offers/:id/cancellation-policy | Продавец/оператор в scope | `minutes` 0..10080, optimistic version, новый revision лишь для будущих принятий |
+| GET /v1/requests/:id/cancellation-preview | Автор заявки / seller / verified guest | `can_cancel`, `will_affect_reliability`, deadline, timezone, reason без чужих данных |
+| POST /v1/requests/:id/cancel | Клиент/продавец/guest capability | `reason_code?`, `Idempotency-Key`, `If-Match`; server snapshot + cancellation record + outbox×2 + possible reliability event |
+| GET /v1/me/reliability | Авторизованный клиент | Его собственная надёжность, размер выборки, формула, изменения, апелляции |
+| GET /v1/sellers/:kind/:id/reliability | Гость/разрешённая сторона | Только публикабельный агрегат продавца, «недостаточно данных», без персональных деталей |
+| POST /v1/reliability-events/:id/appeal | Владелец затронутого customer/provider | Причина/минимальные доказательства, без чувствительных текстов в открытом доступе |
+| GET /v1/me/notifications | Авторизованный участник | Личные событийные уведомления и статус канала; guest видит только своё по capability |
+
+`CancellationPreview`: `request_id`, `current_status`, `scheduled_start_at?`, `free_cancel_until?`, `policy_revision`, `warning_kind` (none/late_customer/provider_cancel), `reliability_may_change`, `timezone`. Preview не источник истины: POST пересчитывает eligibility по snapshot и актуальному серверному времени.
+
+`CancellationResult`: `request_id`, `status`, `cancelled_at`, `actor_kind`, `reliability_event_state` (none/proposed/effective), `notification_state` (queued), `version`. **Не обещать доставку** в том же ответе: outbox → retries → notification delivery status.
+
+`ReliabilitySummary` содержит `subject_kind`, `period_days=180`, `formula_version`, `score?`, `sample_size`, `has_enough_data`, `negative_event_count`, `updated_at`. Разные контексты seller/consumer используют собственные scopes. Автоматическая блокировка и изменение сервисных звёзд отсутствуют.
+
+**Требуется перед генерацией SDK:** привести draft `contracts/openapi.yaml` к единому `ServiceRequest` (вместо наследственного названия Booking), добавить полные DTO и коды 401/403/409/422/429, conditional requests/OTP cases, контрактные negative tests, валидацию OpenAPI 3.1. Пока это спецификация, не production API.
