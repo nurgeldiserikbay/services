@@ -20,6 +20,14 @@ This repo is the authoritative human + AI product and architecture specification
 - Organizations/professionals can publish their actual service areas and delivery modes. Expansion beyond local region must be obvious.
 - Market rollout can start in one city without hard-coding country boundaries in schemas or frontend.
 
+## Diagrams and source of truth
+- Read editable diagrams in docs/diagrams/platform-overview.mmd, order-lifecycle.mmd, technical-architecture.mmd for overall workflows; the equivalent SVG files under assets/ are embedded in docs/ru/01, 04 and 20 for people.
+- Keep business rules in Markdown authoritative over diagrams; update both SVG and Mermaid when changing a relationship.
+- Every ServiceOffer has exactly one seller (independent specialist OR company); person performing a company's job does not automatically own the client's order.
+- Seller chooses intake methods and whether workload/calendar is visible. Booking slots are optional, and direct contact is not a confirmed booking.
+- A guest may initiate an inquiry, but verified public reviews require authenticated author and verified experience.
+- Public read cache/CDN and private transactional endpoints have different cache/privacy policies; country-specific legal enablement is required before regulated services and cross-border personal-data processing.
+
 ## Hard invariants
 - One Person has at most one retained ProfessionalProfile per canonical Profession, including draft/hidden/archived.
 - Professional, company and branch reviews target separate immutable entities; they do not transfer with employment changes.
