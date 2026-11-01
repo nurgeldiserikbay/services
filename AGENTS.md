@@ -87,3 +87,7 @@ Read docs/adr/0005-auth-guest-sessions.md. No forced login for public search/con
 
 ## Data/notification contract correction v0.9
 The canonical Prisma reference has 36 models (including AccountAuthChallenge, AccountConsent, GuestCapability, DomainOutboxEvent). NotificationIntent belongs to a generic DomainOutboxEvent; cancellationId is optional for new/accept/decline notification, but EVERY cancellation requires exactly two notification intents attached to its CancellationEvent. ServiceRequest separates seller and optional performer, and BusyBlock carries personal vs organization context. Guest capability CREATE_REQUEST vs READ_CANCEL must never be interchanged. Do not copy deprecated cancellation-only notification model from older draft sections.
+
+## Visual UX prototype baseline (2026-11-02)
+Preview: https://nurgeldiserikbay.github.io/services/prototype.html ; sources prototype.html, assets/prototype.css, assets/prototype.js; verified via scripts/test-prototype.mjs and .github/workflows/prototype.yml.
+This is a design/flow simulation, NOT production UI, backend auth, real OTP, WhatsApp or live geolocation. Use it as an illustrative reference along with docs/ux/mvp-screen-contracts.md and contract files; never treat fake ratings/clients/phone/OTP as real data. Browser smoke should validate independent vs company routing, optional communication channels, double-grant master/company field visibility and cancellation impact, plus mobile width. kk translation in prototype is partial; full kk/ru is mandatory before production.
