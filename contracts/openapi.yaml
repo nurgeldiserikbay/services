@@ -223,6 +223,177 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+  /search:
+    get:
+      tags: [Professionals, Organizations]
+      operationId: searchPublicMarketplace
+      summary: Публичный поиск услуг, специалистов и компаний без регистрации
+      security: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 180
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [all, professional, organization, offer]
+        - name: city
+          in: query
+          schema:
+            type: string
+            maxLength: 120
+      responses:
+        '200':
+          description: Only published public results; sponsored results must carry an explicit label
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [kind, id, title, is_sponsored]
+                      properties:
+                        kind:
+                          type: string
+                          enum: [professional, organization, offer]
+                        id:
+                          type: string
+                          format: uuid
+                        title:
+                          type: string
+                        is_sponsored:
+                          type: boolean
+                  next_cursor:
+                    type: [string, 'null']
+  /guest-inquiries/challenges:
+    post:
+      tags: [Bookings]
+      operationId: requestGuestContactChallenge
+      summary: Отправить одноразовый код для гостевого обращения, не создавая аккаунт
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [channel, contact]
+              properties:
+                channel:
+                  type: string
+                  enum: [sms, email]
+                contact:
+                  type: string
+                  maxLength: 320
+      responses:
+        '202':
+          description: Generic response to avoid account enumeration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challenge_id]
+                properties:
+                  challenge_id:
+                    type: string
+                    format: uuid
+        '429':
+          description: Rate limit exceeded
+  /guest-inquiries/challenges/{id}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestContactChallenge
+      summary: Подтвердить канал для конкретной гостевой заявки
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              additionalProperties: false
+              properties:
+                code:
+                  type: string
+                  minLength: 4
+                  maxLength: 12
+      responses:
+        '200':
+          description: Short-lived scoped capability; never expose via URL or logs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [guest_capability, expires_at]
+                properties:
+                  guest_capability:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        '429':
+          description: Too many attempts
+  /guest-inquiries:
+    post:
+      tags: [Bookings]
+      operationId: createGuestInquiry
+      summary: Заявка без постоянного аккаунта
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: Guest-Capability
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Scoped, short-lived proof from guest contact verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_offer_id, consent_to_contact]
+              additionalProperties: false
+              properties:
+                service_offer_id:
+                  type: string
+                  format: uuid
+                note:
+                  type: string
+                  maxLength: 1000
+                consent_to_contact:
+                  type: boolean
+                  const: true
+      responses:
+        '201':
+          description: Guest inquiry submitted without User account
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, state]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  state:
+                    const: requested
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
 components:
   securitySchemes:
     sessionAuth:
