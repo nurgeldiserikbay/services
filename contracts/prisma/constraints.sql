@@ -55,7 +55,7 @@ ALTER TABLE notification_intents
 
 -- 3. Conditional uniqueness. An ended affiliation is preserved; only one ACTIVE.
 CREATE UNIQUE INDEX IF NOT EXISTS active_affiliation_unique_pair
-  ON affiliations (organization_id,professional_id) WHERE status::text = 'ACTIVE';
+  ON affiliations (organization_id,professional_id) WHERE status = 'ACTIVE';
 CREATE UNIQUE INDEX IF NOT EXISTS active_organization_member_unique
   ON organization_members (organization_id,user_id) WHERE revoked_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS cancellation_intent_unique_audience
