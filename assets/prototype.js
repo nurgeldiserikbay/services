@@ -21,7 +21,7 @@
     if(!pages.includes(page))return;
     $$('.screen').forEach(el => {el.hidden = el.id !== 'screen-'+page;el.classList.toggle('active-screen',!el.hidden);});
     const activeNav = page==='company-professional'?'company':page==='request-status'?'client':page;
-    $('[data-page]').forEach(el=>el.classList.toggle('nav-active',el.dataset.page===activeNav && el.closest('.top-nav')!==null));
+    $$('[data-page]').forEach(el=>el.classList.toggle('nav-active',el.dataset.page===activeNav && el.closest('.top-nav')!==null));
     if(shouldScroll)window.scrollTo({top:0,behavior:'instant'});
     const heading=$('#screen-'+page+' h1');
     if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
