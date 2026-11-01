@@ -88,8 +88,8 @@ BEGIN
 
   did_reject := false;
   BEGIN
-    INSERT INTO busy_blocks(id,professional_id,start_at,end_at,context)
-      VALUES(gen_random_uuid(),professional_id,'2030-01-01 10:30:00+00','2030-01-01 11:30:00+00','ORGANIZATION');
+    INSERT INTO busy_blocks(id,professional_id,organization_id,start_at,end_at,context)
+      VALUES(gen_random_uuid(),professional_id,company_id,'2030-01-01 10:30:00+00','2030-01-01 11:30:00+00','ORGANIZATION');
   EXCEPTION WHEN exclusion_violation THEN
     did_reject := true;
   END;
