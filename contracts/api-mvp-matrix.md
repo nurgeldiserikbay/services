@@ -65,3 +65,8 @@ Before code generation call these `OPEN TECH`, **not** implicit authorisation to
 - `/auth/challenges`, `/auth/challenges/{id}/verify`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/sessions`: passwordless sign-up/login с явным intent. OTP challenge не сообщает, зарегистрирован ли контакт. Web BFF cookie/CSRF и Native bearer/rotated refresh — разные transport modes; не создавать permanent User при guest OTP.
 - Для private endpoints указаны `webSession` и `sessionAuth`, а для ограниченного доступа гостя — `guestCapability`. Реальная серверная проверка контекста, срока, role ACL и CSRF всё ещё требуется при реализации.
 - CI теперь проверяет не только bundle schema, но и [операционные инварианты OpenAPI](../scripts/check-api-contract.mjs). Метрики полного contract coverage ещё не означают готового backend.
+
+## Актуальная модель v0.9
+Единые маршруты **/requests** и **/guest-requests**; не создавать /bookings и /guest-inquiries. Раздельные `AccountAuthChallenge` и `GuestCapability` соответствуют [Prisma reference](prisma/schema.prisma). `Guest-Capability` после верификации контакта допускает однократное создание заявки; в ответ выдать новое право на собственную заявку, не превращая гостя в User. WebSession cookie с CSRF и mobile bearer/rotated refresh обязательны, прежде чем выпускать приложения.
+
+Общий `DomainOutboxEvent` обеспечивает уведомления при создании и принятии; `NotificationIntent.cancellation_id` nullable кроме cancel. CancellationIntent×2 в одной транзакции — строгое правило. Текущая OpenAPI в CI бандлится и дополнительно проверяется на operationId/path-params и публичные/защищённые маршруты. Полнота DTO/реальных ошибок ещё не подтверждена.
