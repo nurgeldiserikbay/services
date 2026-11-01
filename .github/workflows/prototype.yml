@@ -1,0 +1,46 @@
+name: Validate interactive UX prototype
+on:
+  push:
+    paths:
+      - 'prototype.html'
+      - 'assets/prototype.css'
+      - 'assets/prototype.js'
+      - 'scripts/test-prototype.mjs'
+      - '.github/workflows/prototype.yml'
+  pull_request:
+    paths:
+      - 'prototype.html'
+      - 'assets/prototype.css'
+      - 'assets/prototype.js'
+      - 'scripts/test-prototype.mjs'
+      - '.github/workflows/prototype.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate prototype JavaScript syntax
+        run: |
+          node --check assets/prototype.js
+          node --check scripts/test-prototype.mjs
+      - name: Install headless Chromium and Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Exercise guest, company, seller, calendar and cancellation UX
+        run: node scripts/test-prototype.mjs
+      - name: Attach desktop/mobile proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: services-ux-prototype-screenshots
+          path: artifacts/prototype-*.png
+          if-no-files-found: ignore
+          retention-days: 7
