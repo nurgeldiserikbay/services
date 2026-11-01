@@ -53,3 +53,8 @@ Outbox records committed with write transaction; worker pulls with bounded retri
 
 ## What is missing before implementation-ready
 The reference [Prisma model](../../contracts/prisma/schema.prisma) and [SQL safeguard draft](../../contracts/prisma/constraints.sql) require real migration tests. The [OpenAPI](../../contracts/openapi.yaml) still needs completion of auth endpoints, errors and guest aliases documented in [API matrix](../../contracts/api-mvp-matrix.md). The [UX screen spec](../ux/mvp-screen-contracts.md) needs visual mockups and kk/ru text review. Laws of actual launch countries and regulated categories require external verification. Passing CI syntax checks is not proof of production readiness.
+
+## Доменные уточнения v0.9
+`DomainOutboxEvent` — общая запись для событий заявки/компании/профиля, а не отдельное сообщение провайдера. `NotificationIntent` указывает event и адресата; `NotificationDelivery` фиксирует attempts per channel. CancellationEvent связан **только** с отменой и ровно двумя обязательными intent. Worker не отправляет SMS внутри основной транзакции; retries не должны повторно создавать заявки/штрафы.
+
+Схема identity добавляет `AccountAuthChallenge`, `AccountConsent`, `GuestCapability`; browser-cookie+BFF CSRF не равен mobile bearer refresh. `ServiceRequest` seller и performer различаются, `BusyBlock` связывает организационный контекст без раскрытия клиентских подробностей другому продавцу.
