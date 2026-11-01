@@ -48,6 +48,18 @@ try{
  await page.locator('#requestContact').fill('demo@example.invalid');
  await page.locator('#requestSubmit').click();
  await expect('demo request closes without sending',async()=>!await page.locator('#requestDialog').isVisible());
+ await expect('personal demo request shows pending status',async()=>page.locator('#screen-request-status').isVisible() &&
+   (await page.locator('#demoRequestStatus').innerText()).includes('Ожидает'));
+ await expect('personal request is addressed to master',async()=>await page.locator('#demoRequestReceiver').innerText()==='Айгүл С. — лично');
+ await expect('event journal labels contact and notification as simulation',async()=>/симуляция/.test((await page.locator('#demoRequestEvents').innerText()).toLowerCase()));
+ await page.locator('.top-nav [data-page="seller"]').click();
+ await page.locator('[data-demo-decision="accept"]').click();
+ await expect('seller accepted pending request',async()=>page.locator('#screen-request-status').isVisible() &&
+   (await page.locator('#demoRequestStatus').innerText()).includes('Принята'));
+ await expect('no agreed time means no cancellation penalty',async()=>/Без подтверждённого времени/.test(await page.locator('#demoRequestReliability').innerText()));
+ await page.locator('#demoCancelRequest').click();
+ await expect('client can cancel accepted request without confirmed time',async()=>/Отменена клиентом/.test(await page.locator('#demoRequestStatus').innerText()));
+ await expect('both cancellation notices are simulated',async()=>/2 логические симуляции/.test(await page.locator('#demoRequestEvents').innerText()));
  await page.locator('.top-nav [data-page="company"]').click();
  await page.locator('#screen-company [data-request="company"]').first().click();
  await expect('company is receiver inside company card',async()=>await page.locator('#requestReceiver').innerText()==='Flora Studio — компания');
@@ -68,6 +80,22 @@ try{
  await expect('two-party field intersection enables portfolio',async()=>/Портфолио/.test(await page.locator('#visibleCompanyFields').innerText()));
  await page.locator('[data-master-field="bio"]').uncheck();
  await expect('revoking master field removes it from company preview',async()=>!/Описание/.test(await page.locator('#visibleCompanyFields').innerText()));
+ await page.locator('.top-nav [data-page="company"]').click();
+ await page.locator('#screen-company [data-page="company-professional"]').click();
+ await expect('embedded professional is a separate company context',async()=>page.locator('#screen-company-professional').isVisible());
+ await expect('company specialization page is routed to organization',async()=>/Flora Studio/.test(await page.locator('#screen-company-professional .contact-card').innerText()));
+ await expect('master-granted portfolio displayed within company',async()=>page.locator('#embeddedPortfolio').isVisible());
+ await expect('master-revoked bio hidden from company',async()=>!await page.locator('#embeddedBio').isVisible());
+ await page.locator('#screen-company-professional [data-request="company"]').first().click();
+ await expect('embedded specialist CTA names company as seller',async()=>await page.locator('#requestReceiver').innerText()==='Flora Studio — компания');
+ await page.locator('#requestContact').fill('guest@example.invalid');
+ await page.locator('#requestSubmit').click();
+ await page.locator('.top-nav [data-page="seller"]').click();
+ await expect('company request appears in demo seller inbox',async()=>/Flora Studio/.test(await page.locator('#demoInboxBody').innerText()));
+ await page.locator('[data-demo-decision="decline"]').click();
+ await expect('company can decline without quoting price',async()=>/Отклонена/.test(await page.locator('#demoRequestStatus').innerText()));
+ await expect('declined request is not cancellable',async()=>await page.locator('#demoCancelRequest').isDisabled());
+ await page.locator('.top-nav [data-page="seller"]').click();
  await page.locator('#cancelWindow').selectOption('24');
  await expect('cancel deadline reflected in seller preview',async()=>/24 ч/.test(await page.locator('#policyPreview').innerText()));
  await mkdir(resolve(root,'artifacts'),{recursive:true});
@@ -79,6 +107,13 @@ try{
  await expect('mobile search is usable',async()=>mobile.locator('#searchInput').isVisible());
  const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
  await expect('no major horizontal overflow on mobile',async()=>overflow<=2);
+ await mobile.locator('.top-nav [data-page="company"]').click();
+ await mobile.locator('#screen-company [data-page="company-professional"]').click();
+ await expect('mobile embedded company profile is usable',async()=>mobile.locator('#screen-company-professional h1').isVisible());
+ const embeddedOverflow=await mobile.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+ await expect('no company-card horizontal overflow on mobile',async()=>embeddedOverflow<=2);
+ await mobile.goto(origin+'/prototype.html#request-status',{waitUntil:'networkidle'});
+ await expect('direct request status route does not leak unrelated state',async()=>/Заявка ещё не создана/.test(await mobile.locator('#demoRequestNumber').innerText()));
  await mobile.screenshot({path:resolve(root,'artifacts/prototype-mobile.png'),fullPage:true});
  assert.deepEqual(errors,[],'Browser JavaScript errors');
  console.log('Services UX prototype passed '+checks+' browser assertions; screenshots saved.');
