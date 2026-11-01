@@ -183,6 +183,7 @@ paths:
       summary: Создать организацию в статусе draft; verification required to claim real business
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -223,6 +224,7 @@ paths:
       summary: Owner edits own professional page, not any company version
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: If-Match
@@ -257,6 +259,7 @@ paths:
       summary: Мастер разрешает поля своей страницы конкретной компании
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: organization_id
@@ -291,6 +294,7 @@ paths:
       summary: Компания выбирает подмножество разрешённых мастером полей и корпоративное оформление
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: profile_id
@@ -325,6 +329,7 @@ paths:
       summary: Продавец создаёт услугу с простым приёмом заявок и необязательной ценой
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -367,6 +372,7 @@ paths:
       summary: Seller updates draft or future terms without changing seller of existing requests
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: If-Match
@@ -407,6 +413,7 @@ paths:
       summary: Простая заявка авторизованного клиента; гость использует verified guest route
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -457,6 +464,7 @@ paths:
       summary: Продавец отмечает выполнение; это ещё не verified review
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -478,6 +486,7 @@ paths:
       summary: Продавец отмечает договорённое вне платформы время; уведомление клиенту обязательно
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: If-Match
@@ -508,6 +517,7 @@ paths:
       summary: Приватная история заявок авторизованного клиента
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: Customer-owned requests, cursor pagination to implement
@@ -523,6 +533,7 @@ paths:
       summary: Мои личные и согласованные корпоративные часы
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: Only owned professional allocations, excluding details of other contexts
@@ -537,6 +548,7 @@ paths:
       summary: Мастер предлагает персональное или корпоративное время
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -579,6 +591,7 @@ paths:
       summary: Частные уведомления, отдельные от статуса фактической доставки
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: Private notifications
@@ -594,6 +607,7 @@ paths:
       summary: Удалить свою закладку, не влияя на чужие профили
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
       responses:
@@ -608,6 +622,7 @@ paths:
       summary: Получить свою учётную запись
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: User workspace summary
@@ -623,6 +638,7 @@ paths:
       operationId: listMyProfessionalProfiles
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: Own professional identities
@@ -638,6 +654,7 @@ paths:
       summary: Одна страница на одну каноническую профессию
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -662,6 +679,7 @@ paths:
       summary: Архив, пауза, скрытие, восстановление и удаление
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -712,6 +730,7 @@ paths:
       operationId: inviteProfessional
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -752,6 +771,7 @@ paths:
       summary: Продавец/уполномоченный оператор принимает заявку (без согласования цены)
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -773,6 +793,7 @@ paths:
       summary: Продавец отклоняет заявку
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -878,6 +899,7 @@ paths:
       summary: Seller updates future cancellation terms, not already accepted requests
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: If-Match
@@ -916,6 +938,7 @@ paths:
       summary: Customer reliability and event summary, separate from reviews
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: Private score explanation and appeal instructions
@@ -951,6 +974,7 @@ paths:
       summary: Challenge own reliability event; no automatic public penalty during pending review
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -978,6 +1002,7 @@ paths:
       summary: Мои сохранённые страницы, доступно после входа
       security:
         - sessionAuth: []
+        - webSession: []
       responses:
         '200':
           description: Private saved items
@@ -993,6 +1018,7 @@ paths:
       summary: Добавить страницу в избранное
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -1030,6 +1056,7 @@ paths:
       summary: Раздельный отзыв участнику подтверждённого визита
       security:
         - sessionAuth: []
+        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -1244,6 +1271,8 @@ paths:
     post:
       tags: [Bookings]
       operationId: createGuestRequest
+      security:
+        - guestCapability: []
       summary: Простая заявка без постоянного аккаунта
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -1278,8 +1307,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [id, state]
+                required: [id, state, request_capability, expires_at]
                 properties:
+                  request_capability:
+                    type: string
+                    description: New request-scoped capability, separate from one-time create proof.
+                  expires_at:
+                    type: string
+                    format: date-time
                   id:
                     type: string
                     format: uuid
