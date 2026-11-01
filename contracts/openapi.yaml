@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Services API — initial contract
-  version: 0.3.0
+  version: 0.4.0
   description: >
     Частичный проектный контракт API для простых заявок, публичного каталога и персональных закладок. На момент создания не означает,
     что эти маршруты реализованы. Все серверные операции дополнительно проверяют ACL.
@@ -16,6 +16,469 @@ tags:
   - name: Bookings
   - name: Reviews
 paths:
+  /professions:
+    get:
+      tags: [Professionals]
+      operationId: listProfessions
+      summary: Публичная каноническая таксономия профессий
+      security: []
+      parameters:
+        - name: q
+          in: query
+          schema: {type: string, maxLength: 120}
+        - name: locale
+          in: query
+          schema: {type: string, maxLength: 12}
+      responses:
+        '200':
+          description: Canonical professions, not duplicate professional identities
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/TaxonomyItem'}
+  /service-definitions:
+    get:
+      tags: [Professionals]
+      operationId: listServiceDefinitions
+      summary: Публичные виды услуг, независимо от цены и продавца
+      security: []
+      parameters:
+        - name: profession_id
+          in: query
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: List of service definitions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/TaxonomyItem'}
+  /organizations:
+    post:
+      tags: [Organizations]
+      operationId: createOrganization
+      summary: Создать организацию в статусе draft; verification required to claim real business
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganization'
+      responses:
+        '201':
+          description: Created draft, not verified automatically
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /organizations/{id}:
+    get:
+      tags: [Organizations]
+      operationId: getOrganizationPublic
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Published company profile, excludes private owner contacts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /me/professional-profiles/{id}:
+    patch:
+      tags: [Professionals]
+      operationId: updateOwnProfessionalProfile
+      summary: Owner edits own professional page, not any company version
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: If-Match
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: {type: string, maxLength: 180}
+                about: {type: string, maxLength: 3000}
+      responses:
+        '200':
+          description: Updated owner profile; version incremented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfessionalProfile'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /professional-profiles/{id}/company-views/{organization_id}/permissions:
+    put:
+      tags: [Professionals]
+      operationId: setCompanyFieldsAllowedByProfessional
+      summary: Мастер разрешает поля своей страницы конкретной компании
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: organization_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: If-Match
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyFieldsPermission'
+      responses:
+        '200':
+          description: New master allowlist revision; published caches invalidated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyFieldsPermission'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /organizations/{id}/professionals/{profile_id}/view:
+    put:
+      tags: [Organizations]
+      operationId: setCompanyProfessionalView
+      summary: Компания выбирает подмножество разрешённых мастером полей и корпоративное оформление
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: profile_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: If-Match
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyProfessionalViewUpdate'
+      responses:
+        '200':
+          description: Published view contains only intersection of permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyProfessionalView'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /service-offers:
+    post:
+      tags: [Professionals]
+      operationId: createServiceOffer
+      summary: Продавец создаёт услугу с простым приёмом заявок и необязательной ценой
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceOffer'
+      responses:
+        '201':
+          description: Created offer draft; seller chosen once, server validates ownership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceOffer'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /service-offers/{id}:
+    get:
+      tags: [Professionals]
+      operationId: getPublishedServiceOffer
+      summary: Публичная услуга с реальным продавцом и доступными каналами
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Published public offer only, excludes hidden private contacts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceOffer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Professionals]
+      operationId: updateServiceOffer
+      summary: Seller updates draft or future terms without changing seller of existing requests
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: If-Match
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: {type: string, maxLength: 200}
+                contact_methods:
+                  type: array
+                  uniqueItems: true
+                  minItems: 1
+                  items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
+                availability_visibility: {type: string, enum: [hidden, busy_only, free_slots]}
+                price_label: {type: [string, 'null'], maxLength: 160}
+      responses:
+        '200':
+          description: Updated offer revision; existing request terms unaffected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceOffer'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /requests:
+    post:
+      tags: [Bookings]
+      operationId: createServiceRequest
+      summary: Простая заявка авторизованного клиента; гость использует verified guest route
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceRequest'
+      responses:
+        '201':
+          description: Pending request received by the server-resolved seller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /requests/{id}:
+    get:
+      tags: [Bookings]
+      operationId: getOwnServiceRequest
+      summary: Клиент/продавец видит только свою заявку; гость — по проверенному доступу
+      security:
+        - sessionAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: Guest-Capability
+          in: header
+          required: false
+          schema: {type: string}
+      responses:
+        '200':
+          description: Scoped private request detail, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /requests/{id}/complete:
+    post:
+      tags: [Bookings]
+      operationId: completeServiceRequest
+      summary: Продавец отмечает выполнение; это ещё не verified review
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Request marked complete, customer can confirm experience separately
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /requests/{id}/schedule:
+    patch:
+      tags: [Bookings]
+      operationId: changeServiceRequestSchedule
+      summary: Продавец отмечает договорённое вне платформы время; уведомление клиенту обязательно
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: If-Match
+          in: header
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleUpdate'
+      responses:
+        '200':
+          description: Updated schedule and notification intent, previous deadline not silently reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/requests:
+    get:
+      tags: [Bookings]
+      operationId: getMyCustomerRequests
+      summary: Приватная история заявок авторизованного клиента
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Customer-owned requests, cursor pagination to implement
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/ServiceRequest'}
+  /me/availability-allocations:
+    get:
+      tags: [Bookings]
+      operationId: listMyWorkAllocations
+      summary: Мои личные и согласованные корпоративные часы
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Only owned professional allocations, excluding details of other contexts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/WorkAllocation'}
+    put:
+      tags: [Bookings]
+      operationId: setMyWorkAllocation
+      summary: Мастер предлагает персональное или корпоративное время
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkAllocation'
+      responses:
+        '200':
+          description: Personal allocation active; company allocation requires company approval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkAllocation'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /public-availability:
+    get:
+      tags: [Bookings]
+      operationId: getPublicOfferAvailability
+      summary: Only published free slots or busy indicator when seller opted in
+      security: []
+      parameters:
+        - name: offer_id
+          in: query
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Does not reveal where/with whom a professional is busy elsewhere
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAvailability'
+  /me/notifications:
+    get:
+      tags: [Identity]
+      operationId: listMyNotifications
+      summary: Частные уведомления, отдельные от статуса фактической доставки
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Private notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/NotificationSummary'}
+  /me/saved-items/{id}:
+    delete:
+      tags: [Identity]
+      operationId: removeSavedItem
+      summary: Удалить свою закладку, не влияя на чужие профили
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '204':
+          description: Removed
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /me:
     get:
       tags: [Identity]
@@ -162,6 +625,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
   /bookings:
     post:
+      deprecated: true
       tags: [Bookings]
       operationId: createSimpleRequest
       security:
@@ -198,7 +662,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Booking'
+                $ref: '#/components/schemas/ServiceRequest'
         '409':
           $ref: '#/components/responses/Conflict'
   /requests/{id}/accept:
@@ -217,7 +681,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Booking'
+                $ref: '#/components/schemas/ServiceRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
@@ -770,6 +1234,159 @@ components:
         minLength: 8
         maxLength: 128
   schemas:
+    TaxonomyItem:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: {type: string, format: uuid}
+        code: {type: string}
+        name: {type: string}
+    CreateOrganization:
+      type: object
+      additionalProperties: false
+      required: [name, slug]
+      properties:
+        name: {type: string, minLength: 2, maxLength: 200}
+        slug: {type: string, minLength: 3, maxLength: 160}
+    Organization:
+      type: object
+      required: [id, slug, name, status]
+      properties:
+        id: {type: string, format: uuid}
+        slug: {type: string}
+        name: {type: string}
+        status: {type: string, enum: [draft, active, suspended, closed]}
+    CompanyFieldsPermission:
+      type: object
+      additionalProperties: false
+      required: [allowed_fields]
+      properties:
+        allowed_fields:
+          type: array
+          uniqueItems: true
+          items: {type: string}
+          description: Versioned field allowlist; server validates registered field keys
+    CompanyProfessionalViewUpdate:
+      type: object
+      additionalProperties: false
+      required: [selected_fields]
+      properties:
+        selected_fields:
+          type: array
+          uniqueItems: true
+          items: {type: string}
+        corporate_role: {type: [string, 'null'], maxLength: 160}
+    CompanyProfessionalView:
+      type: object
+      required: [organization_id, professional_id, visible_fields, revision]
+      properties:
+        organization_id: {type: string, format: uuid}
+        professional_id: {type: string, format: uuid}
+        visible_fields:
+          type: array
+          items: {type: string}
+        revision: {type: integer, minimum: 1}
+    CreateServiceOffer:
+      type: object
+      additionalProperties: false
+      required: [definition_id, title, seller_kind, seller_id, contact_methods]
+      properties:
+        definition_id: {type: string, format: uuid}
+        title: {type: string, maxLength: 200}
+        seller_kind: {type: string, enum: [professional, organization]}
+        seller_id: {type: string, format: uuid}
+        contact_methods:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
+        delivery_mode: {type: string, enum: [at_location, at_customer, online, hybrid]}
+        city_id: {type: [string, 'null'], format: uuid}
+        price_label: {type: [string, 'null'], maxLength: 160}
+        availability_visibility: {type: string, enum: [hidden, busy_only, free_slots]}
+    ServiceOffer:
+      type: object
+      required: [id, title, seller_kind, seller_id, status, contact_methods]
+      properties:
+        id: {type: string, format: uuid}
+        definition_id: {type: string, format: uuid}
+        title: {type: string}
+        seller_kind: {type: string, enum: [professional, organization]}
+        seller_id: {type: string, format: uuid}
+        status: {type: string, enum: [draft, published, paused, archived]}
+        contact_methods:
+          type: array
+          items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
+        city_id: {type: [string, 'null'], format: uuid}
+        price_label: {type: [string, 'null']}
+        availability_visibility: {type: string, enum: [hidden, busy_only, free_slots]}
+    CreateServiceRequest:
+      type: object
+      required: [service_offer_id, source_context]
+      additionalProperties: false
+      properties:
+        service_offer_id: {type: string, format: uuid}
+        source_context: {type: string, enum: [personal, organization]}
+        desired_start_at: {type: [string, 'null'], format: date-time}
+        desired_end_at: {type: [string, 'null'], format: date-time}
+        note: {type: [string, 'null'], maxLength: 1000}
+      description: Seller is resolved from offer by backend, never taken from caller.
+    ServiceRequest:
+      type: object
+      required: [id, service_offer_id, seller_kind, seller_id, source_context, state, version]
+      properties:
+        id: {type: string, format: uuid}
+        service_offer_id: {type: string, format: uuid}
+        seller_kind: {type: string, enum: [professional, organization]}
+        seller_id: {type: string, format: uuid}
+        source_context: {type: string, enum: [personal, organization]}
+        state:
+          type: string
+          enum: [pending, accepted, declined, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, completed, expired]
+        scheduled_start_at: {type: [string, 'null'], format: date-time}
+        scheduled_end_at: {type: [string, 'null'], format: date-time}
+        version: {type: integer, minimum: 1}
+    ScheduleUpdate:
+      type: object
+      required: [start_at, end_at, timezone]
+      additionalProperties: false
+      properties:
+        start_at: {type: string, format: date-time}
+        end_at: {type: string, format: date-time}
+        timezone: {type: string, minLength: 1, maxLength: 64}
+    WorkAllocation:
+      type: object
+      required: [professional_id, context, timezone, recurring_hours]
+      properties:
+        professional_id: {type: string, format: uuid}
+        context: {type: string, enum: [personal, organization]}
+        organization_id: {type: [string, 'null'], format: uuid}
+        timezone: {type: string}
+        recurring_hours: {type: object, additionalProperties: true}
+        specialist_approved: {type: boolean, default: false}
+        company_approved: {type: boolean, default: false}
+    PublicAvailability:
+      type: object
+      required: [offer_id, visibility]
+      properties:
+        offer_id: {type: string, format: uuid}
+        visibility: {type: string, enum: [hidden, busy_only, free_slots]}
+        slots:
+          type: array
+          items:
+            type: object
+            required: [start_at, end_at]
+            properties:
+              start_at: {type: string, format: date-time}
+              end_at: {type: string, format: date-time}
+    NotificationSummary:
+      type: object
+      required: [id, kind, state, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string}
+        state: {type: string, enum: [pending, sent, delivered, failed]}
+        created_at: {type: string, format: date-time}
     Country:
       type: object
       required: [id, code, name]
@@ -941,9 +1558,9 @@ components:
         updated_at:
           type: [string, 'null']
           format: date-time
-    Booking:
+    LegacyBooking:
       type: object
-      description: Draft contract for simple request; legacy name retained until API naming is standardized.
+      description: Legacy alias for old /bookings endpoint only; new code uses ServiceRequest.
       required: [id, state, service_offer_id]
       properties:
         id:
