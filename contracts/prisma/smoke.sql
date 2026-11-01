@@ -89,7 +89,7 @@ BEGIN
     VALUES(created_event_id,'request.created','ServiceRequest',request_id);
   INSERT INTO notification_intents(id,domain_event_id,recipient_person_id,audience,channel,dedupe_key)
     VALUES(gen_random_uuid(),created_event_id,owner_person,'SELLER','in_app','smoke-created');
-  IF (SELECT count(*) FROM notification_intents WHERE domain_event_id=created_event_id AND cancellation_id IS NULL) <> 1 THEN
+  IF (SELECT count(*) FROM notification_intents AS n WHERE n.domain_event_id=created_event_id AND n.cancellation_id IS NULL) <> 1 THEN
     RAISE EXCEPTION 'Non-cancellation notification was not stored';
   END IF;
 
