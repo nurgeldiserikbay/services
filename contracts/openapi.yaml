@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: Services API — initial contract
-  version: 0.4.0
+  title: Services API — MVP design contract
+  version: 0.5.0
   description: >
     Частичный проектный контракт API для простых заявок, публичного каталога и персональных закладок. На момент создания не означает,
     что эти маршруты реализованы. Все серверные операции дополнительно проверяют ACL.
@@ -16,6 +16,127 @@ tags:
   - name: Bookings
   - name: Reviews
 paths:
+  /auth/challenges:
+    post:
+      tags: [Identity]
+      operationId: createAccountAuthChallenge
+      summary: Начать явный sign-in/sign-up по SMS/email OTP
+      description: Always generic response; signup requires consent later, and guest verification never creates an account.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthChallengeRequest'
+      responses:
+        '202':
+          description: Accepted; does not reveal whether contact has an account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthChallengeCreated'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/challenges/{id}/verify:
+    post:
+      tags: [Identity]
+      operationId: verifyAccountAuthChallenge
+      summary: Использовать код один раз; создать сессию только после явного intent
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthChallengeVerify'
+      responses:
+        '200':
+          description: Web sets protected cookie; native receives token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionIssued'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/refresh:
+    post:
+      tags: [Identity]
+      operationId: refreshAccountSession
+      summary: Rotate native refresh family or renew protected web session
+      description: Native refresh must be single use; refresh replay revokes family.
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                refresh_token: {type: string, minLength: 24}
+      responses:
+        '200':
+          description: Rotated/renewed session with delivery mode
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionIssued'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/logout:
+    post:
+      tags: [Identity]
+      operationId: logoutAccountSession
+      summary: Отозвать текущую cookie/native сессию
+      security:
+        - sessionAuth: []
+        - webSession: []
+      responses:
+        '204':
+          description: Current session revoked and cookie cleared for web
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout-all:
+    post:
+      tags: [Identity]
+      operationId: revokeAllAccountSessions
+      summary: Отозвать все сессии после проверенного step-up
+      security:
+        - sessionAuth: []
+        - webSession: []
+      responses:
+        '204':
+          description: Session family revoked across devices
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /auth/sessions:
+    get:
+      tags: [Identity]
+      operationId: listMyAccountSessions
+      summary: Собственные устройства/сессии без раскрытия токенов
+      security:
+        - sessionAuth: []
+        - webSession: []
+      responses:
+        '200':
+          description: Private active sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthSessionSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /professions:
     get:
       tags: [Professionals]
@@ -312,7 +433,8 @@ paths:
       summary: Клиент/продавец видит только свою заявку; гость — по проверенному доступу
       security:
         - sessionAuth: []
-        - {}
+        - webSession: []
+        - guestCapability: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: Guest-Capability
@@ -623,48 +745,6 @@ paths:
                     const: pending
         '403':
           $ref: '#/components/responses/Forbidden'
-  /bookings:
-    post:
-      deprecated: true
-      tags: [Bookings]
-      operationId: createSimpleRequest
-      security:
-        - sessionAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [service_offer_id]
-              properties:
-                service_offer_id:
-                  type: string
-                  format: uuid
-                professional_profile_id:
-                  type: [string, 'null']
-                  format: uuid
-                preferred_at:
-                  type: [string, 'null']
-                  format: date-time
-                source_context:
-                  type: string
-                  enum: [personal, organization]
-                  description: Server validates that context matches seller of offer
-                note:
-                  type: [string, 'null']
-                  maxLength: 1000
-      responses:
-        '201':
-          description: Booking created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServiceRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
   /requests/{id}/accept:
     post:
       tags: [Bookings]
@@ -712,7 +792,8 @@ paths:
         Two notification intents are atomically recorded; delivery happens asynchronously.
       security:
         - sessionAuth: []
-        - {}
+        - webSession: []
+        - guestCapability: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -758,7 +839,8 @@ paths:
       description: Private preview is informative only; server recomputes on POST cancel
       security:
         - sessionAuth: []
-        - {}
+        - webSession: []
+        - guestCapability: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - name: Guest-Capability
@@ -1086,7 +1168,7 @@ paths:
                           type: boolean
                   next_cursor:
                     type: [string, 'null']
-  /guest-inquiries/challenges:
+  /guest-requests/challenges:
     post:
       tags: [Bookings]
       operationId: requestGuestContactChallenge
@@ -1121,7 +1203,7 @@ paths:
                     format: uuid
         '429':
           description: Rate limit exceeded
-  /guest-inquiries/challenges/{id}/verify:
+  /guest-requests/challenges/{id}/verify:
     post:
       tags: [Bookings]
       operationId: verifyGuestContactChallenge
@@ -1158,10 +1240,10 @@ paths:
                     format: date-time
         '429':
           description: Too many attempts
-  /guest-inquiries:
+  /guest-requests:
     post:
       tags: [Bookings]
-      operationId: createGuestInquiry
+      operationId: createGuestRequest
       summary: Простая заявка без постоянного аккаунта
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -1210,13 +1292,21 @@ paths:
 
 components:
   securitySchemes:
+    webSession:
+      type: apiKey
+      in: cookie
+      name: __Host-services_session
+      description: HttpOnly Secure same-site session; cookie mutations require Origin and CSRF validation.
+    guestCapability:
+      type: apiKey
+      in: header
+      name: Guest-Capability
+      description: Opaque, short-lived hash-stored capability scoped to one guest request.
     sessionAuth:
       type: http
       scheme: bearer
       bearerFormat: AccessToken
-      description: >
-        Representative contract for mobile; web cookie session may differ
-        and requires a separate approved authentication ADR.
+      description: Native/mobile short-lived bearer; browser uses webSession cookie through BFF.
   parameters:
     ResourceId:
       in: path
@@ -1234,6 +1324,52 @@ components:
         minLength: 8
         maxLength: 128
   schemas:
+    AuthChallengeRequest:
+      type: object
+      additionalProperties: false
+      required: [channel, contact, purpose, locale]
+      properties:
+        channel: {type: string, enum: [email, sms]}
+        contact: {type: string, maxLength: 320}
+        purpose: {type: string, enum: [sign_in, sign_up]}
+        locale: {type: string, enum: [kk, ru, en]}
+    AuthChallengeCreated:
+      type: object
+      additionalProperties: false
+      required: [challenge_id, retry_after_seconds]
+      properties:
+        challenge_id: {type: string, format: uuid}
+        retry_after_seconds: {type: integer, minimum: 0}
+    AuthChallengeVerify:
+      type: object
+      additionalProperties: false
+      required: [code, delivery]
+      properties:
+        code: {type: string, minLength: 4, maxLength: 12}
+        delivery: {type: string, enum: [web_cookie, native_tokens]}
+        accept_terms_version: {type: [string, 'null'], maxLength: 40}
+        accept_privacy_version: {type: [string, 'null'], maxLength: 40}
+      description: Signup requires explicit terms/privacy version acknowledgment; guest capabilities never act as signup.
+    AuthSessionIssued:
+      type: object
+      additionalProperties: false
+      required: [person_id, delivery]
+      properties:
+        person_id: {type: string, format: uuid}
+        delivery: {type: string, enum: [web_cookie, native_tokens]}
+        access_token: {type: [string, 'null'], description: Native only; not returned in web cookie mode.}
+        refresh_token: {type: [string, 'null'], description: Native only; never stored in localStorage.}
+        expires_at: {type: [string, 'null'], format: date-time}
+    AuthSessionSummary:
+      type: object
+      additionalProperties: false
+      required: [id, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        created_at: {type: string, format: date-time}
+        last_used_at: {type: [string, 'null'], format: date-time}
+        device_label: {type: [string, 'null'], maxLength: 120}
+        is_current: {type: boolean}
     TaxonomyItem:
       type: object
       required: [id, code, name]
@@ -1558,20 +1694,6 @@ components:
         updated_at:
           type: [string, 'null']
           format: date-time
-    LegacyBooking:
-      type: object
-      description: Legacy alias for old /bookings endpoint only; new code uses ServiceRequest.
-      required: [id, state, service_offer_id]
-      properties:
-        id:
-          type: string
-          format: uuid
-        state:
-          type: string
-          enum: [pending, accepted, declined, completed, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, expired]
-        service_offer_id:
-          type: string
-          format: uuid
     SavedItem:
       type: object
       required: [target_kind, target_id]
@@ -1629,6 +1751,22 @@ components:
           type: object
           additionalProperties: true
   responses:
+    Gone:
+      description: Expired or already consumed challenge/capability
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    TooManyRequests:
+      description: Rate limit exceeded; Retry-After controls safe retry
+      headers:
+        Retry-After:
+          description: Retry delay in seconds
+          schema: {type: integer, minimum: 1}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
     Unauthorized:
       description: Not authenticated
       content:
