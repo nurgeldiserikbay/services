@@ -57,3 +57,12 @@ API как stateless контейнер, PostgreSQL с миграциями, sto
 
 ## Acceptance by layer
 Unit: profiles one-per-profession; domain transitions; review target. DB integration: uniqueness/races; foreign keys; cross-org isolation. Contract: OpenAPI response/error. Security: auth, IDOR, revoked role, spam, upload. E2E: full user journey. Performance: latency/search under pilot load.
+
+## Обновление v0.5 — минимальный intake engine и company professional views
+Ориентироваться на [ADR-0003](https://github.com/nurgeldiserikbay/services/blob/main/docs/adr/0003-simple-booking-company-view.md). Вместо Quote/ценовых переговоров — сервисные заявки со статусами `pending, accepted, declined, cancelled_by_customer, cancelled_by_provider, completed` (+ optional expired), запись времени по желанию. Прямые WhatsApp/телефон вне Services не записываются как выполненные заказы. Ответственность за обработку определяется `offer.seller` и серверно подтверждённым `source_context`.
+
+`ProfessionalProfile` неизменный источник личности профессии. `CompanyProfessionalView` — тонкая проекция из профиля, согласованной Affiliation и двух наборов настроек отображения (master field allowlist AND organization subset). В отличие от создания дублей здесь не переносится право владения, отзывы, персональные контакты и независимые обращения. Контекстная страница кешируется отдельно, обновления разрешений и отзыв связи инвалидируют её.
+
+Рабочие периоды `AvailabilityAllocation` независимо для личных и корпоративных контекстов, известные `BusyBlock` блокируют конфликтные слоты независимо от внешней видимости. Компания видит за пределами своего scope только «недоступно», не подробности личных записей. При скрытом/неиспользуемом календаре запрос всё равно можно принимать вручную.
+
+`SavedItem` для личного избранного клиента и отдельный ограниченный `AnalyticsSummary`: просмотры, клики контактов, заявки, принятые, выполненные, уникальные **авторизованные** клиенты. Не продавать/экспортировать списки «кто сохранил страницу», не считать клик WhatsApp выполненным заказом. Защита от спама и privacy-by-default во всех событиях.
