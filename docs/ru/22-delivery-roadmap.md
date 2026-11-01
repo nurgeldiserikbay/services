@@ -96,3 +96,8 @@ Advanced calendar synchronization, подгрузка нескольких ре�
 Добавлен [автоматический смысловой анализ API](https://github.com/nurgeldiserikbay/services/blob/main/scripts/check-api-contract.mjs) поверх Redocly bundle. PostgreSQL schema и constraints теперь применяются в **временной PostgreSQL 16 БД GitHub Actions** и проходят smoke проверки уникальности профессиональных профилей, владельцев услуг, известных конфликтов времени и двух уведомлений при отмене. Это реальная проверка на Postgres, но ещё не 34 полных интеграционных/конкурентных теста и не production migration.
 
 **Технические долги для G0:** полный deterministic seed и migration rollback, разграничение scopes для гостевого создания/чтения, auth session recovery и реализации CSRF, исчерпывающие DTO/errors/pagination, full UX visual prototypes + kk/ru copy и legal/country launch sign-off. Не объявлять implementation READY только потому, что CI green.
+
+## Проверки технической базы v0.9
+Контракт PostgreSQL теперь проверяется в CI на **PostgreSQL 16**: `prisma db push` в временную БД, затем применение `constraints.sql` и `smoke.sql`. Данные тестов откатываются; это **не production migration** и не полная проверка конкуренции/безопасности. Расширенный OpenAPI проходит Redocly bundle и специальный семантический checker операций и доступа. Модель включает 36 таблиц/Prisma models, и privacy/OTP/outbox/booking должны быть доведены до утверждённых миграций и сквозных E2E.
+
+При реализации back/frontend начинать с foundation identity/session/guest capability, затем ownership/context, offers, simple request, availability, cancellation notification outbox, reliability и finally reviews. Outbox универсальный; старый cancellation-only notification model не применять.
