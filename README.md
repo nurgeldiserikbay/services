@@ -113,3 +113,10 @@ git add docs/ru index.html scripts/build-site.mjs
 Контракты валидируются автоматически в [workflow Validate technical contracts](.github/workflows/contracts.yml). Референсная Prisma-схема **ещё не применена**, а OpenAPI всё ещё требует детализации auth/error/guest flows. Это шаг подготовки, не подтверждение готовности server/frontend или правовой проверки.
 
 **Архитектурные границы и масштабирование:** [Modular monolith: bounded contexts, transactions, CDN/cache, security](docs/architecture/modular-boundaries.md). Документ связан с эталонной Prisma, OpenAPI и UX-контрактом.
+
+## Аутентификация и единый API v0.9
+- [ADR-0005 — регистрация, сессии и безопасные гостевые заявки](docs/adr/0005-auth-guest-sessions.md)
+- [OpenAPI — auth, requests, guest-requests и три схемы доступа](contracts/openapi.yaml)
+- [Смысловая проверка API-контракта](scripts/check-api-contract.mjs)
+
+Гостевой поиск остаётся открытым. Аккаунт нужен для избранного, истории и управления страницами; гостевые заявки не создают аккаунт скрытно. Принимающая сторона остаётся продавцом предложения, cancellation/reliability не связаны с платёжными соглашениями.
