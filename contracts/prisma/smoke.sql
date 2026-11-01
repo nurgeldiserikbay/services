@@ -16,6 +16,8 @@ DECLARE
   bad_offer UUID := gen_random_uuid();
   request_id UUID := gen_random_uuid();
   cancellation_id UUID := gen_random_uuid();
+  outbox_id UUID := gen_random_uuid();
+  guest_contact_id UUID := gen_random_uuid();
   busy_id UUID := gen_random_uuid();
   did_reject BOOLEAN;
 BEGIN
@@ -40,6 +42,22 @@ BEGIN
 
   INSERT INTO service_offers(id,definition_id,professional_id,title,delivery_mode,contacts)
     VALUES(personal_offer,service_id,professional_id,'Personal installation','online','{}'::jsonb);
+
+  -- Passwordless account challenge and separate guest capabilities are real entities.
+  INSERT INTO account_auth_challenges(id,channel,purpose,contact_digest,contact_cipher,code_hash,expires_at)
+    VALUES(gen_random_uuid(),'EMAIL','SIGN_IN','digest-smoke','ciphertext-smoke','codehash-smoke',now()+interval '5 minutes');
+  INSERT INTO guest_contacts(id,channel,encrypted_value,digest,expires_at)
+    VALUES(guest_contact_id,'email','ciphertext-smoke','digest-guest-smoke',now()+interval '1 day');
+  INSERT INTO guest_capabilities(id,guest_contact_id,scope,token_hash,expires_at)
+    VALUES(gen_random_uuid(),guest_contact_id,'CREATE_REQUEST','guest-token-smoke',now()+interval '15 minutes');
+  did_reject := false;
+  BEGIN
+    INSERT INTO guest_capabilities(id,guest_contact_id,scope,token_hash,expires_at)
+      VALUES(gen_random_uuid(),guest_contact_id,'READ_CANCEL','invalid-cap-smoke',now()+interval '1 day');
+  EXCEPTION WHEN check_violation THEN
+    did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'Guest read/cancel scope without request was allowed'; END IF;
 
   -- User's professional profile is unique per profession, including archived.
   did_reject := false;
@@ -85,9 +103,11 @@ BEGIN
   DELETE FROM busy_blocks WHERE id=busy_id;
   INSERT INTO cancellation_events(id,request_id,actor,reason_code)
     VALUES(cancellation_id,request_id,'CUSTOMER','changed_plans');
-  INSERT INTO notification_intents(id,cancellation_id,recipient_person_id,audience,channel,dedupe_key)
-    VALUES(gen_random_uuid(),cancellation_id,customer_person,'INITIATOR','in_app','smoke-confirm'),
-          (gen_random_uuid(),cancellation_id,owner_person,'COUNTERPARTY','in_app','smoke-other');
+  INSERT INTO domain_outbox_events(id,topic,subject_kind,subject_id)
+    VALUES(outbox_id,'request.cancelled','ServiceRequest',request_id);
+  INSERT INTO notification_intents(id,domain_event_id,cancellation_id,recipient_person_id,audience,channel,dedupe_key)
+    VALUES(gen_random_uuid(),outbox_id,cancellation_id,customer_person,'INITIATOR','in_app','smoke-confirm'),
+          (gen_random_uuid(),outbox_id,cancellation_id,owner_person,'COUNTERPARTY','in_app','smoke-other');
 
   -- Real DB checks the deferred "exactly two" trigger at constraint evaluation.
   SET CONSTRAINTS cancellation_two_intents IMMEDIATE;
@@ -95,7 +115,7 @@ BEGIN
   IF (SELECT count(*) FROM notification_intents WHERE dedupe_key IN ('smoke-confirm','smoke-other')) <> 2 THEN
     RAISE EXCEPTION 'Expected two notification intents';
   END IF;
-  RAISE NOTICE 'Postgres smoke passed: seller XOR, profile unique, seller routing, busy overlap, two intents';
+  RAISE NOTICE 'Postgres smoke passed: seller XOR, professional unique, OTP/capability scopes, seller routing, busy overlap, two intents';
 END
 $smoke$;
 ROLLBACK;
