@@ -1,0 +1,30 @@
+name: Validate technical contracts
+on:
+  push:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/contracts.yml'
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/contracts.yml'
+  workflow_dispatch:
+
+jobs:
+  prisma-and-openapi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate design-reference Prisma schema (not a migration)
+        env:
+          DATABASE_URL: postgresql://design:design@localhost:5432/services?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema contracts/prisma/schema.prisma
+      - name: Resolve OpenAPI 3.1 references and bundle draft contract
+        run: npx --yes @redocly/cli@1.34.5 bundle contracts/openapi.yaml -o /tmp/services-openapi-bundled.yaml
+      - name: Verify required SQL safeguards are documented
+        run: |
+          node -e "const fs=require('fs');const s=fs.readFileSync('contracts/prisma/constraints.sql','utf8');for(const x of ['service_offers_seller_xor','service_requests_customer_xor','no_overlapping_known_busy_blocks','cancellation_two_intents'])if(!s.includes(x))throw Error('missing '+x);"
