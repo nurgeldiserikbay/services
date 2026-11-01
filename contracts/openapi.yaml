@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Services API — initial contract
-  version: 0.2.0
+  version: 0.3.0
   description: >
     Частичный проектный контракт API для простых заявок, публичного каталога и персональных закладок. На момент создания не означает,
     что эти маршруты реализованы. Все серверные операции дополнительно проверяют ACL.
@@ -241,19 +241,190 @@ paths:
     post:
       tags: [Bookings]
       operationId: cancelSimpleRequest
-      summary: Клиент или продавец отменяет собственную заявку/запись
+      summary: Отменить заявку, уведомить обе стороны и применить правила надёжности
+      description: >
+        Owner/guest capability checked by backend. Seller policy snapshot from accepted booking
+        determines customer deadline; cancelled pending never lowers reliability.
+        Two notification intents are atomically recorded; delivery happens asynchronously.
+      security:
+        - sessionAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: Guest-Capability
+          in: header
+          required: false
+          description: Scoped authorization for verified guest cancelling own request
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Expected current request version, checked with idempotent cancellation
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason_code:
+                  type: string
+                  enum: [changed_plans, seller_unavailable, customer_unavailable, schedule_changed, agreed_mutual, other]
+      responses:
+        '200':
+          description: Cancelled; both notification intents queued, delivery not yet guaranteed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationResult'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /requests/{id}/cancellation-preview:
+    get:
+      tags: [Bookings]
+      operationId: getCancellationPreview
+      summary: Preview cancellation deadline and possible reliability change
+      description: Private preview is informative only; server recomputes on POST cancel
+      security:
+        - sessionAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: Guest-Capability
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Eligibility and deadline, without private data of other participants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationPreview'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /service-offers/{id}/cancellation-policy:
+    get:
+      tags: [Bookings]
+      operationId: getOfferCancellationPolicy
+      summary: Public policy set by seller, before consumer chooses service
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Cancellation terms in the offer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationPolicy'
+    put:
+      tags: [Bookings]
+      operationId: setOfferCancellationPolicy
+      summary: Seller updates future cancellation terms, not already accepted requests
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [free_cancel_before_minutes]
+              additionalProperties: false
+              properties:
+                free_cancel_before_minutes:
+                  type: integer
+                  minimum: 0
+                  maximum: 10080
+      responses:
+        '200':
+          description: New policy version for future bookings only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationPolicy'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /me/reliability:
+    get:
+      tags: [Identity]
+      operationId: getMyCustomerReliability
+      summary: Customer reliability and event summary, separate from reviews
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Private score explanation and appeal instructions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReliabilitySummary'
+  /sellers/{kind}/{id}/reliability:
+    get:
+      tags: [Bookings]
+      operationId: getSellerReliability
+      summary: Publication-safe provider reliability, independent from review stars
+      security: []
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [professional, organization]
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Public summary with insufficient-data suppression
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReliabilitySummary'
+  /reliability-events/{id}/appeal:
+    post:
+      tags: [Bookings]
+      operationId: appealReliabilityEvent
+      summary: Challenge own reliability event; no automatic public penalty during pending review
       security:
         - sessionAuth: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 800
       responses:
-        '200':
-          description: Cancelled and known busy slot released
+        '202':
+          description: Human review requested
         '403':
           $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/Conflict'
   /me/saved-items:
     get:
       tags: [Identity]
@@ -683,6 +854,93 @@ components:
         preferred_slug:
           type: string
           maxLength: 100
+    CancellationPolicy:
+      type: object
+      required: [offer_id, free_cancel_before_minutes, revision]
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        free_cancel_before_minutes:
+          type: integer
+          minimum: 0
+          maximum: 10080
+        revision:
+          type: integer
+          minimum: 1
+    CancellationPreview:
+      type: object
+      required: [request_id, current_status, timezone, reliability_may_change]
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        current_status:
+          type: string
+        scheduled_start_at:
+          type: [string, 'null']
+          format: date-time
+        free_cancel_until:
+          type: [string, 'null']
+          format: date-time
+        policy_revision:
+          type: [integer, 'null']
+        warning_kind:
+          type: string
+          enum: [none, late_customer, provider_cancel]
+        reliability_may_change:
+          type: boolean
+        timezone:
+          type: string
+    CancellationResult:
+      type: object
+      required: [request_id, status, cancelled_at, reliability_event_state, notification_state]
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [cancelled_by_customer, cancelled_by_provider, cancelled_mutual]
+        cancelled_at:
+          type: string
+          format: date-time
+        reliability_event_state:
+          type: string
+          enum: [none, proposed, effective]
+        notification_state:
+          type: string
+          const: queued
+        version:
+          type: integer
+          minimum: 1
+    ReliabilitySummary:
+      type: object
+      required: [subject_kind, period_days, formula_version, sample_size, has_enough_data, negative_event_count]
+      properties:
+        subject_kind:
+          type: string
+          enum: [customer, professional, organization]
+        period_days:
+          type: integer
+          const: 180
+        formula_version:
+          type: string
+        score:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 100
+        sample_size:
+          type: integer
+          minimum: 0
+        has_enough_data:
+          type: boolean
+        negative_event_count:
+          type: integer
+          minimum: 0
+        updated_at:
+          type: [string, 'null']
+          format: date-time
     Booking:
       type: object
       description: Draft contract for simple request; legacy name retained until API naming is standardized.
@@ -693,7 +951,7 @@ components:
           format: uuid
         state:
           type: string
-          enum: [pending, accepted, declined, completed, cancelled_by_customer, cancelled_by_provider, expired]
+          enum: [pending, accepted, declined, completed, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, expired]
         service_offer_id:
           type: string
           format: uuid
