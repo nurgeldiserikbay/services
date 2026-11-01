@@ -72,3 +72,9 @@ services-back NestJS + TypeScript + PostgreSQL/Prisma modular monolith; services
 - For **every** cancelled request, create **two** transactional notification intents (initiator and counterparty), then asynchronously deliver with retries and status. Cancellation remains effective if SMS fails.
 - Appeals and explainability; no-show requires review; don't block account or apply monetary penalty based on reliability score.
 - Diagram in docs/diagrams/cancellation-reliability.mmd and assets/cancellation-reliability.svg. Legal/data residency/country checks remain launch gates, not settled by Markdown.
+
+## Implementation references v0.8
+- Design DB: contracts/prisma/schema.prisma (Prisma reference), contracts/prisma/constraints.sql (PG migration safeguards), contracts/prisma/test-cases.md (negative/concurrency tests), contracts/prisma/README.md (non-deployed design status). Never assume the reference was migrated.
+- Design API: contracts/openapi.yaml, contracts/api-mvp-matrix.md; unresolved gaps require contract decisions, not backend improvisation. Legacy /bookings is deprecated, canonical ServiceRequest.
+- UX contract for client/seller/admin: docs/ux/mvp-screen-contracts.md. This is a behavior spec, not approved visual mockups; design review remains necessary.
+- GitHub Actions contracts.yml validates Prisma syntax and Redocly OpenAPI reference bundling, not execution of PostgreSQL SQL, ACL, or legal compliance.
