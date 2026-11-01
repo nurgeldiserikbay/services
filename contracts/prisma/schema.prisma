@@ -11,24 +11,110 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserStatus { ACTIVE SUSPENDED DELETED }
-enum ProfileStatus { DRAFT PUBLISHED PAUSED ARCHIVED }
-enum OrganizationStatus { DRAFT ACTIVE SUSPENDED CLOSED }
-enum MemberRole { OWNER ADMIN OPERATOR AUDITOR }
-enum AffiliationStatus { INVITED ACTIVE DECLINED ENDED }
-enum AssignmentStatus { PROPOSED ACCEPTED REVOKED }
-enum OfferStatus { DRAFT PUBLISHED PAUSED ARCHIVED }
-enum WorkContext { PERSONAL ORGANIZATION }
-enum AvailabilityVisibility { HIDDEN BUSY_ONLY FREE_SLOTS }
-enum RequestSourceContext { PERSONAL ORGANIZATION }
-enum RequestStatus { PENDING ACCEPTED DECLINED CANCELLED_BY_CUSTOMER CANCELLED_BY_PROVIDER CANCELLED_MUTUAL COMPLETED EXPIRED }
-enum CancellationActor { CUSTOMER SELLER SYSTEM }
-enum ReliabilitySubject { CUSTOMER PROFESSIONAL ORGANIZATION }
-enum ReliabilityEventStatus { PROPOSED EFFECTIVE SUPPRESSED APPEALED REVERSED }
-enum NotificationStatus { PENDING SENT DELIVERED FAILED }
-enum ExperienceStatus { UNVERIFIED CONFIRMED DISPUTED }
-enum ReviewStatus { SUBMITTED PUBLISHED UNDER_REVIEW HIDDEN REMOVED }
-enum SavedTargetKind { PROFESSIONAL ORGANIZATION LOCATION OFFER }
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+enum ProfileStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  ARCHIVED
+}
+enum OrganizationStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+enum MemberRole {
+  OWNER
+  ADMIN
+  OPERATOR
+  AUDITOR
+}
+enum AffiliationStatus {
+  INVITED
+  ACTIVE
+  DECLINED
+  ENDED
+}
+enum AssignmentStatus {
+  PROPOSED
+  ACCEPTED
+  REVOKED
+}
+enum OfferStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  ARCHIVED
+}
+enum WorkContext {
+  PERSONAL
+  ORGANIZATION
+}
+enum AvailabilityVisibility {
+  HIDDEN
+  BUSY_ONLY
+  FREE_SLOTS
+}
+enum RequestSourceContext {
+  PERSONAL
+  ORGANIZATION
+}
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED_BY_CUSTOMER
+  CANCELLED_BY_PROVIDER
+  CANCELLED_MUTUAL
+  COMPLETED
+  EXPIRED
+}
+enum CancellationActor {
+  CUSTOMER
+  SELLER
+  SYSTEM
+}
+enum ReliabilitySubject {
+  CUSTOMER
+  PROFESSIONAL
+  ORGANIZATION
+}
+enum ReliabilityEventStatus {
+  PROPOSED
+  EFFECTIVE
+  SUPPRESSED
+  APPEALED
+  REVERSED
+}
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+enum ExperienceStatus {
+  UNVERIFIED
+  CONFIRMED
+  DISPUTED
+}
+enum ReviewStatus {
+  SUBMITTED
+  PUBLISHED
+  UNDER_REVIEW
+  HIDDEN
+  REMOVED
+}
+enum SavedTargetKind {
+  PROFESSIONAL
+  ORGANIZATION
+  LOCATION
+  OFFER
+}
 
 model User {
   id           String       @id @default(uuid()) @db.Uuid
@@ -67,6 +153,7 @@ model Person {
   authoredReviews       Review[]
   experiences           ServiceExperience[]
   customerReliability   ReliabilityEvent[]     @relation("CustomerReliability")
+  notifications         NotificationIntent[]
   @@map("persons")
 }
 
@@ -148,6 +235,7 @@ model ProfessionalProfile {
   busyBlocks    BusyBlock[]
   reliability   ReliabilityEvent[]        @relation("ProfessionalReliability")
   reviewTargets Review[]                  @relation("ProfessionalReview")
+  sellerRequests ServiceRequest[]         @relation("ProfessionalRequestSeller")
   @@unique([personId, professionId]) // includes PAUSED and ARCHIVED
   @@index([status, professionId])
   @@map("professional_profiles")
@@ -169,6 +257,7 @@ model Organization {
   reliability    ReliabilityEvent[]        @relation("OrganizationReliability")
   reviewTargets  Review[]                  @relation("OrganizationReview")
   notifications  NotificationIntent[]
+  sellerRequests ServiceRequest[]         @relation("OrganizationRequestSeller")
   @@map("organizations")
 }
 
@@ -329,6 +418,8 @@ model ServiceRequest {
   offer               ServiceOffer          @relation(fields: [offerId], references: [id], onDelete: Restrict)
   customer            Person?               @relation("CustomerRequests", fields: [customerPersonId], references: [id], onDelete: Restrict)
   guestContact        GuestContact?         @relation(fields: [guestContactId], references: [id], onDelete: Restrict)
+  sellerProfessional ProfessionalProfile?  @relation("ProfessionalRequestSeller", fields: [sellerProfessionalId], references: [id], onDelete: Restrict)
+  sellerOrganization Organization?          @relation("OrganizationRequestSeller", fields: [sellerOrganizationId], references: [id], onDelete: Restrict)
   cancellationSnapshot CancellationSnapshot?
   cancellationEvent   CancellationEvent?
   events              ServiceRequestEvent[]
@@ -423,6 +514,7 @@ model NotificationIntent {
   dedupeKey         String            @unique @map("dedupe_key") @db.VarChar(180)
   cancellation      CancellationEvent @relation(fields: [cancellationId], references: [id], onDelete: Restrict)
   recipientOrg      Organization?     @relation(fields: [recipientOrgId], references: [id], onDelete: Restrict)
+  recipientPerson   Person?           @relation(fields: [recipientPersonId], references: [id], onDelete: Restrict)
   guestContact      GuestContact?     @relation(fields: [guestContactId], references: [id], onDelete: Restrict)
   @@index([state, nextAttemptAt])
   @@map("notification_intents")
