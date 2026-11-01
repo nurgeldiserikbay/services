@@ -3,6 +3,14 @@
 ## Mission
 This repo is the authoritative human + AI product and architecture specification for the Services platform. All four repositories must follow the same domain invariants and API definitions. HTML is generated from Markdown; never edit index.html alone.
 
+## v0.6 source-of-truth precedence
+1. docs/ru/01-product.md — canonical current product blueprint, not older appended drafts.
+2. docs/ru/12-roadmap-decisions.md — ACCEPTED/OPEN/DEFERRED + technical gate. Unresolved business choices must not be improvised by an agent.
+3. docs/adr/0003-simple-booking-company-view.md — binding owner decision: simple seller-accepted requests, optional calendar, two-sided company views, no Quote or price negotiation.
+4. docs/ru/22-delivery-roadmap.md — actual implementation phases and Definition of Done.
+5. Other chapters and draft contracts provide implementation detail; when inconsistent, resolve and document before coding.
+Do not claim code is implemented or legal requirements are satisfied merely because docs say so.
+
 ## Start here
 1. README.md
 2. docs/ru/13-functional-catalog.md (requirement IDs)
