@@ -1,6 +1,25 @@
 # 20. Backend: модули, операции, асинхронность и интеграции
 > Архитектура реализации v0.2 · services-back · NestJS / Prisma / PostgreSQL.
 
+## Общая схема технической архитектуры
+
+![Схема Services: Next.js, PWA, Capacitor, Admin, CDN, NestJS API, PostgreSQL, фоновые задания и медиахранилище](../../assets/technical-architecture.svg)
+
+Это схема **одной логической платформы**, а не требование запускать десятки серверов. Начать с одного модульного монолита NestJS, независимых Web/Admin приложений, PostgreSQL, объектного хранилища и фонового обработчика; масштабировать компоненты по метрикам. Для ИИ доступна [редактируемая Mermaid-схема](https://github.com/nurgeldiserikbay/services/blob/main/docs/diagrams/technical-architecture.mmd).
+
+## Масштабирование без ненужных микросервисов
+- Весь бизнес-процесс **не должен находиться в одном frontend bundle**: публичная витрина SSR/SEO и кешируемые страницы отделены от авторизованных кабинетов, тяжёлый конструктор грузится лениво; mobile делит фичи и компоненты, но не SSR runtime.
+- **CDN** для статических ресурсов/изображений и опубликованных страниц; короткий публичный API cache по явному городу/сервису/языку с корректным invalidation. Приватные данные заявок, контактов клиентов, OTP и админские API — `Cache-Control: private, no-store`.
+- **PostgreSQL** остаётся единственным источником истины: индексы по доступности offer, стране/городу/категории, курсорная пагинация, лимиты выдачи, materialized/aggregated read models по измеренной необходимости. Не делать дорогие JOIN и пересчёт репутации на каждом запросе.
+- **Outbox + worker** для уведомлений, индексации, пересчёта агрегатов, загрузки медиа и антифрода. Очередь Redis/отдельный поисковик подключать только после профилирования. Ошибка пуша не отменяет подтверждённый заказ.
+- **Безопасные транзакции** принятия заявки: idempotency key + optimistic version + row constraints на слоты только для активированного календаря. Нет необходимости хранить миллионы заранее сгенерированных свободных слотов.
+- Горизонтальное масштабирование API при фактической нагрузке, соединения Postgres через pool, ограничения клиентских запросов и circuit breakers к сторонним услугам; CDN не может заменять проверку прав.
+
+## Модель самостоятельного продавца и компании
+`ServiceOffer.seller` — типизированный владелец предложения: independent_professional_profile_id **или** organization_id; check exactly-one и сильные FK/constraints. `Performer` и `ServiceAssignment` — отдельные объекты. У независимого продавца обработчик — владелец профильной услуги; у компании — явно уполномоченный оператор в рамках scope. Клиентская заявка хранит snapshot продавца, предложения, цены/условий. Нельзя перенести заказ компании в личный кабинет мастера только потому, что он выполнял услугу.
+
+`OfferIntakeSettings`: `methods`, `manual_accept_required`, `availability_visibility`, `booking_mode`, `timezone`, `capacity?` и ограничения конкретного типа услуги. **Показ занятости и календарь добровольны**; отсутствие слотов не означает недоступность заявки или невозможность публикации предложения. `ServiceRequest` — запрос/контакт, `Booking` — подтверждённое соглашение; нужен ADR об их выделении или единой типизированной модели.
+
 ## Слои
 Controller (HTTP, auth, DTO) → Application use case (orchestration/transaction) → Domain policy (invariants/state machine) → Repository interface → Prisma adapter. Разделять REST payload и внутренние domain objects. Общий модуль Config, Logger, Exception filter, Request Context, AuthGuard, Authorization Policy Engine, Transaction Manager. Нельзя писать бизнес-переходы внутри controller или Prisma middleware.
 
