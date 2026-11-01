@@ -13,6 +13,13 @@ This repo is the authoritative human + AI product and architecture specification
 7. docs/ru/19-frontend-design-system.md / 20-backend-implementation.md / 21-admin-operations.md
 8. docs/ru/22-delivery-roadmap.md, 23-quality-tests-release.md, 25-ai-development.md, 26-acceptance-checklist.md
 
+## Global discovery decision
+- Read docs/adr/0002-global-local-discovery.md, docs/ru/13-functional-catalog.md (GEO-01..10) and chapter 14 (J-08..12).
+- Services is globally addressable, but anonymous clients see selected/estimated local city by default. Manual city/country overrides IP, language and automatic location inference.
+- Never require login or GPS for browsing, searching, or viewing publicly shared seller contacts. GPS only on explicit consent; show city switcher and global/online options.
+- Organizations/professionals can publish their actual service areas and delivery modes. Expansion beyond local region must be obvious.
+- Market rollout can start in one city without hard-coding country boundaries in schemas or frontend.
+
 ## Hard invariants
 - One Person has at most one retained ProfessionalProfile per canonical Profession, including draft/hidden/archived.
 - Professional, company and branch reviews target separate immutable entities; they do not transfer with employment changes.
