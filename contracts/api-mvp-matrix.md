@@ -59,3 +59,9 @@ Before code generation call these `OPEN TECH`, **not** implicit authorisation to
 6. Customer cancels pending/on-time/late; seller cancels accepted; two intents, correct reliability recipient.
 7. Same customer/multi-company resource cannot expose other business's customer, private busy reasons or saved items.
 8. Logged-in customer saves item, sees only own history; verified review requires confirmed experience.
+
+## Изменения v0.9 — удаление дублирования и безопасность
+- **Единственный canonical заказ: `ServiceRequest` в `/requests`**. Старый `/bookings` удалён. Заявка гостя создаётся через `/guest-requests`, но сохраняется в той же таблице ServiceRequest с `guest_contact_id`. Подтверждение контакта через `/guest-requests/challenges` выдаёт создание-заявки capability; ответ на создание выдаёт другую request-scoped capability для чтения/отмены.
+- `/auth/challenges`, `/auth/challenges/{id}/verify`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/sessions`: passwordless sign-up/login с явным intent. OTP challenge не сообщает, зарегистрирован ли контакт. Web BFF cookie/CSRF и Native bearer/rotated refresh — разные transport modes; не создавать permanent User при guest OTP.
+- Для private endpoints указаны `webSession` и `sessionAuth`, а для ограниченного доступа гостя — `guestCapability`. Реальная серверная проверка контекста, срока, role ACL и CSRF всё ещё требуется при реализации.
+- CI теперь проверяет не только bundle schema, но и [операционные инварианты OpenAPI](../scripts/check-api-contract.mjs). Метрики полного contract coverage ещё не означают готового backend.
