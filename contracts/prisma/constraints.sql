@@ -51,7 +51,7 @@ ALTER TABLE notification_intents
   CHECK (num_nonnulls(recipient_person_id,recipient_org_id,guest_contact_id) = 1);
 ALTER TABLE notification_intents
   ADD CONSTRAINT notification_audience
-  CHECK (audience IN ('INITIATOR','COUNTERPARTY'));
+  CHECK (audience IN ('INITIATOR','COUNTERPARTY','SELLER','CLIENT'));
 
 -- 3. Conditional uniqueness. An ended affiliation is preserved; only one ACTIVE.
 CREATE UNIQUE INDEX IF NOT EXISTS active_affiliation_unique_pair
@@ -145,6 +145,23 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER company_views_affiliation_guard
   BEFORE INSERT OR UPDATE ON company_professional_views
   FOR EACH ROW EXECUTE FUNCTION enforce_company_view_link();
+
+-- 6a. Account challenge and request-scoped guest capability guards.
+ALTER TABLE account_auth_challenges
+  ADD CONSTRAINT account_auth_challenge_attempts
+  CHECK (attempts BETWEEN 0 AND 5 AND expires_at > created_at);
+ALTER TABLE guest_capabilities
+  ADD CONSTRAINT guest_capability_scope_request
+  CHECK ((scope = 'CREATE_REQUEST' AND request_id IS NULL)
+     OR (scope = 'READ_CANCEL' AND request_id IS NOT NULL));
+ALTER TABLE guest_capabilities
+  ADD CONSTRAINT guest_capability_expiry
+  CHECK (expires_at > created_at);
+ALTER TABLE notification_intents
+  ADD CONSTRAINT cancellation_intent_scope
+  CHECK (cancellation_id IS NULL OR audience IN ('INITIATOR','COUNTERPARTY'));
+-- Domain events may notify seller/client without cancellation_id; cancellation
+-- events still MUST have exactly two intents referencing cancellation_id.
 
 -- 6. Each cancellation must atomically enqueue EXACTLY TWO logical intents:
 -- the initiator's confirmation and counterparty's notification.
