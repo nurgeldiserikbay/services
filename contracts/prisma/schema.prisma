@@ -516,8 +516,24 @@ model NotificationIntent {
   recipientOrg      Organization?     @relation(fields: [recipientOrgId], references: [id], onDelete: Restrict)
   recipientPerson   Person?           @relation(fields: [recipientPersonId], references: [id], onDelete: Restrict)
   guestContact      GuestContact?     @relation(fields: [guestContactId], references: [id], onDelete: Restrict)
+  deliveries        NotificationDelivery[]
   @@index([state, nextAttemptAt])
   @@map("notification_intents")
+}
+
+model NotificationDelivery {
+  id             String             @id @default(uuid()) @db.Uuid
+  intentId       String             @map("intent_id") @db.Uuid
+  channel        String             @db.VarChar(20)
+  providerRef    String?            @map("provider_ref") @db.VarChar(160)
+  state          NotificationStatus @default(PENDING)
+  attemptCount   Int                @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime?          @map("next_attempt_at") @db.Timestamptz(3)
+  deliveredAt    DateTime?          @map("delivered_at") @db.Timestamptz(3)
+  intent         NotificationIntent @relation(fields: [intentId], references: [id], onDelete: Restrict)
+  @@unique([intentId, channel])
+  @@index([state, nextAttemptAt])
+  @@map("notification_deliveries")
 }
 
 model ReliabilityEvent {
