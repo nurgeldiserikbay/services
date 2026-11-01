@@ -78,3 +78,6 @@ services-back NestJS + TypeScript + PostgreSQL/Prisma modular monolith; services
 - Design API: contracts/openapi.yaml, contracts/api-mvp-matrix.md; unresolved gaps require contract decisions, not backend improvisation. Legacy /bookings is deprecated, canonical ServiceRequest.
 - UX contract for client/seller/admin: docs/ux/mvp-screen-contracts.md. This is a behavior spec, not approved visual mockups; design review remains necessary.
 - GitHub Actions contracts.yml validates Prisma syntax and Redocly OpenAPI reference bundling, not execution of PostgreSQL SQL, ACL, or legal compliance.
+
+## Modular architecture and performance v0.8
+Read docs/architecture/modular-boundaries.md before implementing cross-module changes. Each module owns its write model; public search/SSR must be cached separately from private guest requests, auth, cancellations and analytics. Cancellation is one transaction (status + busy release + event + exactly two logical notification intents), followed by async delivery; do not create notification sends inside a DB transaction. Use PostgreSQL constraints and idempotency to handle races, and show no foreign-context busy details. Search and listing are thin lazy routes; no payment or Quote workflow.
