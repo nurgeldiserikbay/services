@@ -2,7 +2,7 @@
 
 **Статус:** design reference v0.8, не production migration. Нормативные продуктовые решения: [ADR-0002](../../docs/adr/0002-global-local-discovery.md), [ADR-0003](../../docs/adr/0003-simple-booking-company-view.md), [ADR-0004](../../docs/adr/0004-cancellation-reliability-and-defaults.md).
 
-- [schema.prisma](schema.prisma) — единый связный Prisma reference для будущего `services-back`; содержит 32 модели: identity, country/city, taxonomy, professionals/companies/affiliations, offers, guest contacts, requests, schedules, cancellation, reliability, reviews and saved items.
+- [schema.prisma](schema.prisma) — единый связный Prisma reference для будущего `services-back`; содержит 36 моделей: identity, country/city, taxonomy, professionals/companies/affiliations, offers, guest contacts, requests, schedules, cancellation, reliability, reviews and saved items.
 - [constraints.sql](constraints.sql) — то, что Prisma declarative schema не выразит: XOR продавца/клиента, согласованность seller→offer, запрет менять продавца заявки, уникальные активные связи, пересечения известных busy blocks, обязательные **два** уведомления при отмене.
 - [test-cases.md](test-cases.md) — тесты БД и конкурентных переходов до PR по реальным миграциям.
 
@@ -44,3 +44,10 @@ CI `.github/workflows/contracts.yml` запускает Prisma validate и ба�
 `ProductDecision → Prisma+SQL invariant → OpenAPI DTO/errors → backend integration tests → generated frontend client → UX E2E → QA`.
 
 Актуальная UX-спецификация: [docs/ux/mvp-screen-contracts.md](../../docs/ux/mvp-screen-contracts.md).
+
+## Точность модели v0.9
+Теперь **36 Prisma-моделей**. Отдельно добавлены `AccountAuthChallenge`, `AccountConsent`, `GuestCapability`, `DomainOutboxEvent`. `Session` хранит семью ротационных токенов, `ServiceRequest` различает продавца и фактического исполнителя, а `BusyBlock` имеет собственный context и organization_id. Гость создаёт заявку через capability `CREATE_REQUEST`, затем получает независимый `READ_CANCEL` только на её ID; проверять срок, hash, запись и scope на сервере.
+
+**Уведомления для всех событий:** `DomainOutboxEvent` — общая транзакционная запись для new/accepted/declined/cancelled и других событий; `NotificationIntent` с `domain_event_id` привязан к ней, `cancellation_id` необязателен для остальных событий. **При отмене остаётся ровно два логических intent** по cancellation_id, их доставка по каналам отслеживается в `NotificationDelivery`. Для создания/принятия заявки эти два специальных cancel-intent не требуются.
+
+Статические guards SQL контролируют типы контекста для allocations/busy blocks, guest scopes и cancellation notification invariants. Full auth challenge verify, реальное соглашение о выборе исполнителя, field-level company-view permissions, PII retention и rate limits — domain tests, а не только SQL.
