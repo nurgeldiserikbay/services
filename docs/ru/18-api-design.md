@@ -47,3 +47,23 @@ profile.published.v1, affiliation.accepted.v1, affiliation.ended.v1, assignment.
 
 ## API quality gates
 Путь указан в документации → OpenAPI schema → бекенд handler → permissions tests → integration tests → generated client → UI states → E2E. Никакой ручной копии типизации в двух фронтендах.
+
+## Дополнение v0.3 — публичный read API и гостевые запросы (контракт для детализации)
+**Принцип:** чтение публичных опубликованных данных не требует Authorization. Возвращать отдельные public DTO (только whitelisted данные), не просто исключать пару полей из приватной сущности. Для SSR/индексации — согласованные cache-control/ETag и безопасная инвалидация публикации/архива.
+
+| Операция | Доступ | Правило |
+| --- | --- | --- |
+| GET /v1/search | anonymous | Каталог и фильтры; только опубликованные/активные данные |
+| GET /v1/professionals/:slug | anonymous | Публичная версия профессиональной страницы |
+| GET /v1/organizations/:slug | anonymous | Публичная версия компании и доступных филиалов |
+| GET /v1/service-offers/:id | anonymous | Цена/диапазон, продавец, условия, доступные исполнители |
+| GET /v1/reviews?target_kind=&target_id= | anonymous | Только допустимые опубликованные отзывы |
+| POST /v1/guest-inquiries/challenges | anonymous, rate-limited | Создать проверку контакта; не раскрывать существование аккаунта |
+| POST /v1/guest-inquiries/challenges/:id/verify | anonymous + OTP | Ограниченная проверка канала; TTL, попытки, anti-bruteforce |
+| POST /v1/guest-inquiries | verified guest capability | Идемпотентное создание обращения без User/Person |
+| GET /v1/guest-inquiries/:id | verified guest capability | Только свой запрос и минимально необходимые поля |
+| POST /v1/guest-inquiries/:id/cancel | verified guest capability | Ограниченный переход с проверкой статуса |
+
+**Статус:** предлагаемые маршруты, их ещё нет в частичном `contracts/openapi.yaml`; до разработки нужно дополнить полную схему OpenAPI 3.1 и зафиксировать авторизацию web/mobile. Не хранить OTP или bearer capability в URL аналитики, logs и сторонних referer. На опубликованных контактах — только те данные, на распространение которых владелец явно согласился.
+
+Гостевая заявка может быть представлена отдельной таблицей GuestInquiry с безопасной связью на Booking либо Booking с guest_contact_id и nullable customer_person_id; решение о форме persistence зафиксировать ADR. Для последующей привязки заявки к аккаунту требуется новое подтверждение владения каналом и отсутствие конфликтов, а не совпадение номера без проверки.
