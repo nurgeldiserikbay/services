@@ -17,6 +17,7 @@ DECLARE
   request_id UUID := gen_random_uuid();
   cancellation_id UUID := gen_random_uuid();
   outbox_id UUID := gen_random_uuid();
+  created_event_id UUID := gen_random_uuid();
   guest_contact_id UUID := gen_random_uuid();
   busy_id UUID := gen_random_uuid();
   did_reject BOOLEAN;
@@ -82,6 +83,15 @@ BEGIN
   INSERT INTO service_requests(id,offer_id,customer_person_id,source_context,seller_professional_id,status,scheduled_start_at,scheduled_end_at)
     VALUES(request_id,personal_offer,customer_person,'PERSONAL',professional_id,'ACCEPTED',
       '2030-01-01 10:00:00+00','2030-01-01 11:00:00+00');
+
+  -- Generic request.created notification works without a fake CancellationEvent.
+  INSERT INTO domain_outbox_events(id,topic,subject_kind,subject_id)
+    VALUES(created_event_id,'request.created','ServiceRequest',request_id);
+  INSERT INTO notification_intents(id,domain_event_id,recipient_person_id,audience,channel,dedupe_key)
+    VALUES(gen_random_uuid(),created_event_id,owner_person,'SELLER','in_app','smoke-created');
+  IF (SELECT count(*) FROM notification_intents WHERE domain_event_id=created_event_id AND cancellation_id IS NULL) <> 1 THEN
+    RAISE EXCEPTION 'Non-cancellation notification was not stored';
+  END IF;
 
   INSERT INTO busy_blocks(id,professional_id,request_id,start_at,end_at,context)
     VALUES(busy_id,professional_id,request_id,'2030-01-01 10:00:00+00','2030-01-01 11:00:00+00','PERSONAL');
