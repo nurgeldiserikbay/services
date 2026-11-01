@@ -106,7 +106,7 @@ git add docs/ru index.html scripts/build-site.mjs
 
 ## Технические контракты перед реализацией v0.8
 
-- [Prisma reference — 32 модели](contracts/prisma/schema.prisma) · [PostgreSQL SQL-инварианты](contracts/prisma/constraints.sql) · [миграции и ограничения](contracts/prisma/README.md) · [DB test matrix](contracts/prisma/test-cases.md)
+- [Prisma reference — 36 моделей](contracts/prisma/schema.prisma) · [PostgreSQL SQL-инварианты](contracts/prisma/constraints.sql) · [миграции и ограничения](contracts/prisma/README.md) · [DB test matrix](contracts/prisma/test-cases.md)
 - [Расширенный OpenAPI 3.1](contracts/openapi.yaml) · [карта операций и открытых API-деталей](contracts/api-mvp-matrix.md)
 - [UX-сценарии 16 ключевых экранов](docs/ux/mvp-screen-contracts.md)
 
@@ -120,3 +120,6 @@ git add docs/ru index.html scripts/build-site.mjs
 - [Смысловая проверка API-контракта](scripts/check-api-contract.mjs)
 
 Гостевой поиск остаётся открытым. Аккаунт нужен для избранного, истории и управления страницами; гостевые заявки не создают аккаунт скрытно. Принимающая сторона остаётся продавцом предложения, cancellation/reliability не связаны с платёжными соглашениями.
+
+## Техническое уточнение v0.9
+Референс содержит **36 Prisma-моделей**, а не первоначальные 32. Универсальный DomainOutboxEvent поддерживает уведомления при создании, принятии и отмене; на отмену остаются **два обязательных уведомления**. Раздельные seller/performer и company/personal BusyBlock защищают личные графики мастеров; AccountAuthChallenge и GuestCapability описывают безопасный доступ без принудительной регистрации. SQL проверяется на временном PostgreSQL в CI, не на продакшен-БД.
