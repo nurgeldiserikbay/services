@@ -28,6 +28,15 @@ This repo is the authoritative human + AI product and architecture specification
 - A guest may initiate an inquiry, but verified public reviews require authenticated author and verified experience.
 - Public read cache/CDN and private transactional endpoints have different cache/privacy policies; country-specific legal enablement is required before regulated services and cross-border personal-data processing.
 
+## Owner-approved simplified booking model — ADR-0003 (2026-11-01)
+- Read docs/adr/0003-simple-booking-company-view.md before implementing offers, booking, calendars, professional-company pages, analytics, customer accounts.
+- **Do not implement Quote / price negotiation / mandatory pricing / forced calendars.** Guest/authenticated user sends a simple request; the seller accepts/declines; cancellation and manually recording busy time are supported.
+- Requests initiated on a professional's **independent** page belong to that professional. Requests initiated on a **company** page, including the embedded professional card, belong to the company. Never silently change seller.
+- One canonical professional profile per profession. CompanyProfessionalView is a two-sided projection: professional allowlist AND company selection AND platform rule. No cloning profiles/reviews, no leaking personal contacts/schedule.
+- Work allocations may be company hours in daytime and independent hours in evening; conflict detection on *known* platform bookings and minimal busy-only privacy across contexts.
+- Registered consumers get saved pages and private history; public search, click-to-contact and verified guest requests stay accessible without accounts. Analytics must distinguish page views, contact clicks, actual requests and uniquely identified registered consumers.
+- ADR-0003 supersedes old draft references to Quote, price negotiation, mandatory accepted snapshots of price and former Booking state enums.
+
 ## Hard invariants
 - One Person has at most one retained ProfessionalProfile per canonical Profession, including draft/hidden/archived.
 - Professional, company and branch reviews target separate immutable entities; they do not transfer with employment changes.
