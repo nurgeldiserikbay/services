@@ -25,9 +25,9 @@ if(links.length!==26||new Set(links).size!==26)throw new Error('Navigation must 
 const api=await readFile(new URL('../contracts/openapi.yaml',import.meta.url),'utf8');
 if(!/^openapi: 3\.1\.0/m.test(api)||!api.includes('paths:')||!api.includes('components:'))
   throw new Error('Missing initial OpenAPI contract structure');
-// Diagram contract: three SVGs are accessible on the HTML website and
-// three editable Mermaid source files remain available to AI developers.
-const diagrams=['platform-overview','order-lifecycle','technical-architecture'];
+// Diagram contract: four SVGs are accessible on the HTML website and
+// four editable Mermaid source files remain available to AI developers.
+const diagrams=['platform-overview','order-lifecycle','technical-architecture','cancellation-reliability'];
 for(const name of diagrams){
   const svg=await readFile(new URL('../assets/'+name+'.svg',import.meta.url),'utf8');
   const mmd=await readFile(new URL('../docs/diagrams/'+name+'.mmd',import.meta.url),'utf8');
@@ -37,6 +37,11 @@ for(const name of diagrams){
   if(!html.includes('src="assets/'+name+'.svg"'))
     throw new Error('Diagram not embedded in generated HTML: '+name);
 }
+// Cancellation-policy regression is an explicit owner decision, not an optional draft.
+const cancellationAdr=await readFile(new URL('../docs/adr/0004-cancellation-reliability-and-defaults.md',import.meta.url),'utf8');
+if(!cancellationAdr.includes('NotificationIntent') || !api.includes('operationId: getOfferCancellationPolicy') ||
+   !api.includes('operationId: getCancellationPreview') || !api.includes('operationId: getMyCustomerReliability'))
+  throw new Error('Missing owner-approved cancellation policy/API draft');
 const required=['README.md','AGENTS.md','docs/adr/0001-runtime-boundaries.md'];
 for(const path of required)await access(new URL('../'+path,import.meta.url));
 console.log('Docs structure: 26 chapters, navigation, manifest, API draft, entry points OK.');
