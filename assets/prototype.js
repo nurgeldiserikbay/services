@@ -4,7 +4,7 @@
   const $ = (selector, parent=document) => parent.querySelector(selector);
   const $$ = (selector, parent=document) => [...parent.querySelectorAll(selector)];
   const pages = ['home','professional','company','client','seller'];
-  const state = {city:'Караганда',query:'',saved:new Set(),receiver:'professional',sampleCancelled:false,score:98,language:'ru'};
+  const state = {city:'Караганда',query:'',saved:new Set(),receiver:'professional',sampleCancelled:false,score:100,language:'ru'};
   let toastTimer;
   const locations = {'Караганда':'Караганда','Алматы':'Алматы','Астана':'Астана','Весь мир':'Весь мир','Онлайн':'Онлайн'};
   const requestDialog = $('#requestDialog');
@@ -102,8 +102,8 @@
     $('#cancelSample').closest('.request-item').hidden=true;
     $('#cancelledExample').hidden=false;
     if(late){
-      state.score=83;
-      $('#cancelOutcome').textContent='Поздняя отмена: демонстрационная надёжность клиента снижена (98 → 83).';
+      state.score=91;
+      $('#cancelOutcome').textContent='Поздняя отмена: демонстрационная надёжность клиента снижена (100 → 91).';
       $('#sampleAfter').textContent='В реальном продукте изменение рейтинга будет зависеть от истории, подтверждённого правила и возможности апелляции.';
     }else{
       $('#cancelOutcome').textContent='Отмена вовремя: демонстрационная надёжность осталась без изменений.';
