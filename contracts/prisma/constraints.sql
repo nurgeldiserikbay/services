@@ -20,6 +20,19 @@ ALTER TABLE service_offers
   ADD CONSTRAINT service_offers_delivery_mode_valid
   CHECK (delivery_mode IN ('at_location','at_customer','online','hybrid'));
 
+-- Business-context allocations require explicit matching organization, no leak into personal.
+ALTER TABLE availability_allocations
+  ADD CONSTRAINT allocation_context_owner
+  CHECK ((context = 'PERSONAL' AND organization_id IS NULL)
+     OR (context = 'ORGANIZATION' AND organization_id IS NOT NULL));
+ALTER TABLE busy_blocks
+  ADD CONSTRAINT busy_block_context_owner
+  CHECK ((context = 'PERSONAL' AND organization_id IS NULL)
+     OR (context = 'ORGANIZATION' AND organization_id IS NOT NULL));
+-- ServiceRequest.performer_professional_id must be validated by the domain layer:
+-- for corporate offers the chosen performer needs an accepted ServiceAssignment.
+-- Seller and performer are distinct, and changing the performer must not change seller.
+
 -- 2. Reference semantics and bounded cancellation policy.
 ALTER TABLE cancellation_policies
   ADD CONSTRAINT cancellation_policies_window
