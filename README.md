@@ -111,3 +111,5 @@ git add docs/ru index.html scripts/build-site.mjs
 - [UX-сценарии 16 ключевых экранов](docs/ux/mvp-screen-contracts.md)
 
 Контракты валидируются автоматически в [workflow Validate technical contracts](.github/workflows/contracts.yml). Референсная Prisma-схема **ещё не применена**, а OpenAPI всё ещё требует детализации auth/error/guest flows. Это шаг подготовки, не подтверждение готовности server/frontend или правовой проверки.
+
+**Архитектурные границы и масштабирование:** [Modular monolith: bounded contexts, transactions, CDN/cache, security](docs/architecture/modular-boundaries.md). Документ связан с эталонной Prisma, OpenAPI и UX-контрактом.
