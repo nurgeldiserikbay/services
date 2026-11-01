@@ -73,3 +73,16 @@ ServiceOffer: delivery_mode = at_location | at_customer | online | hybrid; до�
 `SavedItem` (person_id, target_kind professional|organization|location|offer, target_id, created_at) уникален по (person_id, target_kind, target_id). `Follow` отдельно от сохранения в закладки; `AnalyticsEvent` / `SellerMetricDaily` агрегируют публичные просмотры, клики контактов, guest/authenticated requests, принятые и подтверждённые услуги; `unique_registered_customer_count` — только на основании правомерно связанных авторизованных обращений. Никакая статистика звонков/WhatsApp не доказывает выполненный заказ.
 
 **Миграции и совместимость:** прежние проектные `bookings.snapshot_json.price` не означают обязательного поля; существующие события/отзывы при миграции должны оставаться доступными, но старые Quote/draft schema из планов не считать утверждённой моделью.
+
+## Дополнение v0.7 — snapshot отмены, репутационные события и транзакционная доставка
+Рекомендуемые таблицы/поля (проекционный дизайн, **ещё не Prisma migration**):
+- `ServiceOfferCancellationPolicy(offer_id PK, free_cancel_before_minutes, revision, updated_by, updated_at)`, допустимый диапазон 0..10080 с server CHECK; предложения без времени не получают дедлайн.
+- `ServiceRequestCancellationSnapshot(request_id UNIQUE, seller_kind, seller_id, policy_revision, scheduled_start_at_utc, timezone, free_cancel_before_minutes, free_cancel_until_utc, accepted_at)`, неизменяемый после принятия со временем, protected by seller/ACL.
+- `CancellationEvent(id, request_id, initiated_by_role, initiated_by_person_id?, seller_id, status_from, status_to, reason_code, occurred_at, late, snapshot_id?, version)`, append-only; без текстов диагнозов/переговоров.
+- `ReliabilityEvent(id, request_id, subject_kind customer_person|professional_profile|organization, subject_id, event_key UNIQUE, reason, weight, score_policy_version, status proposed|effective|suppressed|appealed|reversed, reviewed_by?, created_at)`; unique по subject + request + group, не штрафовать дважды за retry.
+- `ReliabilityAggregate(subject_kind, subject_id, rolling_window, eligible_completed, weighted_penalties, score, sample_size, computed_at, formula_version)` обновляется из событий, не прямым редактированием администратора.
+- `NotificationIntent(id, event_id, recipient_role, recipient_person_id?, verified_guest_contact_id?, channel, state pending|sent|delivered|failed, retry_count, next_retry_at, idempotency_key UNIQUE)` с двумя адресатами на любую отмену. При наличии inbox у компании направить через owner/operator routing без рассылки всем сотрудникам.
+
+**Транзакция:** проверить `request.version` и ACL → статус cancel → записать CancellationEvent → снять резерв занятости → два NotificationIntent и при допустимости ReliabilityEvent → commit. Worker после commit выполняет retries, сообщает failure, обновляет агрегаты. Время UTC + timezone IANA для отображения, периоды и grace не менять задним числом, скрытые контакты не выводить в логи/CDN.
+
+Индексировать `(seller_id,status,scheduled_start_at)`, `(customer_person_id,status)`, `(subject_id,occurred_at)`, `notification_intent(state,next_retry_at)`; privacy/retention и законное место хранения гостевых контактов остаются launch gate.
