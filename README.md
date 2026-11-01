@@ -103,3 +103,11 @@ git add docs/ru index.html scripts/build-site.mjs
 ## Готовность к реализации
 
 Бизнес-направление согласовано, но проект **ещё не признан implementation-ready**: в [главе 12](docs/ru/12-roadmap-decisions.md) продуктовые решения OPEN-01..14 выбраны как defaults в ADR-0004, но TECH-01..08 и юридические launch gates остаются. До основной реализации согласовать спорные бизнес-правила, UX, единую Prisma/REST модель и безопасность. Подробнее — [глава 22](docs/ru/22-delivery-roadmap.md). Схемы/Markdown не доказывают наличие готового к эксплуатации ПО.
+
+## Технические контракты перед реализацией v0.8
+
+- [Prisma reference — 32 модели](contracts/prisma/schema.prisma) · [PostgreSQL SQL-инварианты](contracts/prisma/constraints.sql) · [миграции и ограничения](contracts/prisma/README.md) · [DB test matrix](contracts/prisma/test-cases.md)
+- [Расширенный OpenAPI 3.1](contracts/openapi.yaml) · [карта операций и открытых API-деталей](contracts/api-mvp-matrix.md)
+- [UX-сценарии 16 ключевых экранов](docs/ux/mvp-screen-contracts.md)
+
+Контракты валидируются автоматически в [workflow Validate technical contracts](.github/workflows/contracts.yml). Референсная Prisma-схема **ещё не применена**, а OpenAPI всё ещё требует детализации auth/error/guest flows. Это шаг подготовки, не подтверждение готовности server/frontend или правовой проверки.
