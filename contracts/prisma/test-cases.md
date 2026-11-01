@@ -46,3 +46,19 @@
 - Миграции применять к пустой базе и к базе с тестовыми legacy rows, проверить rollback, idempotency, quarantine старых несоответствующих данных.
 - Отдельно performance p95 публичного поиска по городу/category/status и private `/requests`, влияние количества профилей/слотов/локализаций.
 - Запрещено считать SQL `constraints.sql` применённым только по его наличию в docs repo.
+
+## Дополнительные проверки v0.9 (ещё не полные автоматизированные тесты)
+| ID | Ситуация | Ожидаемое |
+| --- | --- | --- |
+| DB-35 | Passwordless auth challenge дважды использует один код | После consume повтор невозможен, user session не дублируется, OTP не в логах |
+| DB-36 | Guest create capability используется для чтения чужой заявки | Запрещено: CREATE_REQUEST только до создания, READ_CANCEL только к собственному request_id |
+| DB-37 | Guest READ_CANCEL capability без request_id или просроченная | CHECK rejects некорректный scope; backend 403/410 после срока |
+| DB-38 | Request создан, но не cancellation, нужно уведомить seller | DomainOutboxEvent + NotificationIntent с NULL cancellation_id, без фиктивной отмены |
+| DB-39 | Request принят или отклонён продавцом | Уведомления отправляются через generic DomainOutboxEvent, без изменения reliability |
+| DB-40 | Отмена accepted после создания DomainOutboxEvent | CancellationEvent с ровно двумя NotificationIntent; доставка per channel отдельно, один transactional commit |
+| DB-41 | Корпоративная запись с performerProfessionalId и sellerOrganizationId | Seller остаётся организацией, performer разрешён через ACCEPTED ServiceAssignment, privacy сохраняется |
+| DB-42 | Организационный BusyBlock без organization_id либо личный с organization_id | PostgreSQL CHECK rejects; совпадение UTC интервалов разных контекстов блокируется GiST |
+| DB-43 | Refresh token повторно использован после rotation | Отозвать token family, вернуть 401 и audit, но не раскрывать сам токен |
+| DB-44 | Два разных контакта пытаются claim одного существующего Person | Без явной проверенной процедуры merge не связывать личности автоматически |
+
+Запуск `prisma db push` + `constraints.sql` + `smoke.sql` в CI — лишь **узкий DB smoke**, а не выполнение всех DB-01..44. Полные concurrency/authorization/E2E тесты должны выполняться в `services-back` с реальными доменными use cases.
