@@ -10,6 +10,7 @@ servers:
     description: Placeholder; not an actual API
 tags:
   - name: Identity
+  - name: Geography
   - name: Professionals
   - name: Organizations
   - name: Bookings
@@ -223,6 +224,93 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+  /geo/countries:
+    get:
+      tags: [Geography]
+      operationId: listCountries
+      summary: Справочник стран, доступный без входа
+      security: []
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+            maxLength: 16
+      responses:
+        '200':
+          description: Published geographic taxonomy
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Country'
+  /geo/areas:
+    get:
+      tags: [Geography]
+      operationId: listAdministrativeAreas
+      summary: Найти области, регионы или штаты в стране
+      security: []
+      parameters:
+        - name: country_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Administrative subdivisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GeoArea'
+  /geo/cities:
+    get:
+      tags: [Geography]
+      operationId: searchCities
+      summary: Выбрать город по названию в любой стране без входа
+      security: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 120
+        - name: country_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: area_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: City results with stable IDs and full ancestry
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+  /geo/suggestion:
+    get:
+      tags: [Geography]
+      operationId: suggestSearchLocation
+      summary: Предполагаемая начальная локация без запроса GPS
+      security: []
+      responses:
+        '200':
+          description: Approximate suggestion; UI allows manual override
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeoSuggestion'
   /search:
     get:
       tags: [Professionals, Organizations]
@@ -240,11 +328,31 @@ paths:
           schema:
             type: string
             enum: [all, professional, organization, offer]
-        - name: city
+        - name: country_id
           in: query
           schema:
             type: string
-            maxLength: 120
+            format: uuid
+        - name: area_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: city_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [city, area, country, global]
+        - name: delivery_mode
+          in: query
+          schema:
+            type: string
+            enum: [any, at_location, at_customer, online]
       responses:
         '200':
           description: Only published public results; sponsored results must carry an explicit label
@@ -270,8 +378,787 @@ paths:
                           type: string
                         is_sponsored:
                           type: boolean
+                        location_label:
+                          type: [string, 'null']
+                        delivery_mode:
+                          type: string
+                          enum: [at_location, at_customer, online, hybrid]
+                        is_within_selected_area:
+                          type: boolean
+                        currency:
+                          type: [string, 'null']
+                          description: ISO 4217 currency of offer, if applicable
+                          pattern: '^[A-Z]{3}  /guest-inquiries/challenges:
+    post:
+      tags: [Bookings]
+      operationId: requestGuestContactChallenge
+      summary: Отправить одноразовый код для гостевого обращения, не создавая аккаунт
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [channel, contact]
+              properties:
+                channel:
+                  type: string
+                  enum: [sms, email]
+                contact:
+                  type: string
+                  maxLength: 320
+      responses:
+        '202':
+          description: Generic response to avoid account enumeration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challenge_id]
+                properties:
+                  challenge_id:
+                    type: string
+                    format: uuid
+        '429':
+          description: Rate limit exceeded
+  /guest-inquiries/challenges/{id}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestContactChallenge
+      summary: Подтвердить канал для конкретной гостевой заявки
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              additionalProperties: false
+              properties:
+                code:
+                  type: string
+                  minLength: 4
+                  maxLength: 12
+      responses:
+        '200':
+          description: Short-lived scoped capability; never expose via URL or logs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [guest_capability, expires_at]
+                properties:
+                  guest_capability:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        '429':
+          description: Too many attempts
+  /guest-inquiries:
+    post:
+      tags: [Bookings]
+      operationId: createGuestInquiry
+      summary: Заявка без постоянного аккаунта
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: Guest-Capability
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Scoped, short-lived proof from guest contact verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_offer_id, consent_to_contact]
+              additionalProperties: false
+              properties:
+                service_offer_id:
+                  type: string
+                  format: uuid
+                note:
+                  type: string
+                  maxLength: 1000
+                consent_to_contact:
+                  type: boolean
+                  const: true
+      responses:
+        '201':
+          description: Guest inquiry submitted without User account
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, state]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  state:
+                    const: requested
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: AccessToken
+      description: >
+        Representative contract for mobile; web cookie session may differ
+        and requires a separate approved authentication ADR.
+  parameters:
+    ResourceId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+  schemas:
+    Country:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: '^[A-Z]{2}    MeResponse:
+      type: object
+      required: [user_id, person_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        person_id:
+          type: string
+          format: uuid
+        workspace_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ProfessionalProfile:
+      type: object
+      required: [id, profession_id, lifecycle_status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        profession_id:
+          type: string
+          format: uuid
+        lifecycle_status:
+          type: string
+          enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
+        slug:
+          type: [string, 'null']
+        version:
+          type: integer
+          minimum: 1
+    CreateProfessionalProfile:
+      type: object
+      additionalProperties: false
+      required: [profession_id]
+      properties:
+        profession_id:
+          type: string
+          format: uuid
+        preferred_slug:
+          type: string
+          maxLength: 100
+    Booking:
+      type: object
+      required: [id, state, service_offer_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [requested, accepted, rejected, withdrawn, in_progress, completed, cancelled_by_client, cancelled_by_provider, reschedule_requested, disputed]
+        service_offer_id:
+          type: string
+          format: uuid
+    CreateReview:
+      type: object
+      additionalProperties: false
+      required: [target_kind, target_id, rating]
+      properties:
+        target_kind:
+          type: string
+          enum: [professional, organization, location]
+        target_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 3000
+    Review:
+      allOf:
+        - $ref: '#/components/schemas/CreateReview'
+        - type: object
+          required: [id, experience_id, status]
+          properties:
+            id:
+              type: string
+              format: uuid
+            experience_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [submitted, published, under_review, hidden, removed]
+    ApiError:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Insufficient resource permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Duplicate or invalid concurrent transition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not public or not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
                   next_cursor:
                     type: [string, 'null']
+                  suggested_expansions:
+                    type: array
+                    items:
+                      type: object
+                      required: [scope, label]
+                      properties:
+                        scope:
+                          type: string
+                          enum: [area, country, global, online]
+                        label:
+                          type: string
+  /guest-inquiries/challenges:
+    post:
+      tags: [Bookings]
+      operationId: requestGuestContactChallenge
+      summary: Отправить одноразовый код для гостевого обращения, не создавая аккаунт
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [channel, contact]
+              properties:
+                channel:
+                  type: string
+                  enum: [sms, email]
+                contact:
+                  type: string
+                  maxLength: 320
+      responses:
+        '202':
+          description: Generic response to avoid account enumeration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challenge_id]
+                properties:
+                  challenge_id:
+                    type: string
+                    format: uuid
+        '429':
+          description: Rate limit exceeded
+  /guest-inquiries/challenges/{id}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestContactChallenge
+      summary: Подтвердить канал для конкретной гостевой заявки
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              additionalProperties: false
+              properties:
+                code:
+                  type: string
+                  minLength: 4
+                  maxLength: 12
+      responses:
+        '200':
+          description: Short-lived scoped capability; never expose via URL or logs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [guest_capability, expires_at]
+                properties:
+                  guest_capability:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        '429':
+          description: Too many attempts
+  /guest-inquiries:
+    post:
+      tags: [Bookings]
+      operationId: createGuestInquiry
+      summary: Заявка без постоянного аккаунта
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: Guest-Capability
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Scoped, short-lived proof from guest contact verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_offer_id, consent_to_contact]
+              additionalProperties: false
+              properties:
+                service_offer_id:
+                  type: string
+                  format: uuid
+                note:
+                  type: string
+                  maxLength: 1000
+                consent_to_contact:
+                  type: boolean
+                  const: true
+      responses:
+        '201':
+          description: Guest inquiry submitted without User account
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, state]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  state:
+                    const: requested
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: AccessToken
+      description: >
+        Representative contract for mobile; web cookie session may differ
+        and requires a separate approved authentication ADR.
+  parameters:
+    ResourceId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+  schemas:
+    MeResponse:
+      type: object
+      required: [user_id, person_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        person_id:
+          type: string
+          format: uuid
+        workspace_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ProfessionalProfile:
+      type: object
+      required: [id, profession_id, lifecycle_status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        profession_id:
+          type: string
+          format: uuid
+        lifecycle_status:
+          type: string
+          enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
+        slug:
+          type: [string, 'null']
+        version:
+          type: integer
+          minimum: 1
+    CreateProfessionalProfile:
+      type: object
+      additionalProperties: false
+      required: [profession_id]
+      properties:
+        profession_id:
+          type: string
+          format: uuid
+        preferred_slug:
+          type: string
+          maxLength: 100
+    Booking:
+      type: object
+      required: [id, state, service_offer_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [requested, accepted, rejected, withdrawn, in_progress, completed, cancelled_by_client, cancelled_by_provider, reschedule_requested, disputed]
+        service_offer_id:
+          type: string
+          format: uuid
+    CreateReview:
+      type: object
+      additionalProperties: false
+      required: [target_kind, target_id, rating]
+      properties:
+        target_kind:
+          type: string
+          enum: [professional, organization, location]
+        target_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 3000
+    Review:
+      allOf:
+        - $ref: '#/components/schemas/CreateReview'
+        - type: object
+          required: [id, experience_id, status]
+          properties:
+            id:
+              type: string
+              format: uuid
+            experience_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [submitted, published, under_review, hidden, removed]
+    ApiError:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Insufficient resource permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Duplicate or invalid concurrent transition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not public or not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+        name:
+          type: string
+    GeoArea:
+      type: object
+      required: [id, country_id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_id:
+          type: string
+          format: uuid
+        code:
+          type: [string, 'null']
+        name:
+          type: string
+    City:
+      type: object
+      required: [id, country_id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_id:
+          type: string
+          format: uuid
+        area_id:
+          type: [string, 'null']
+          format: uuid
+        name:
+          type: string
+        timezone:
+          type: [string, 'null']
+          description: IANA timezone name, e.g. Asia/Almaty
+    GeoSuggestion:
+      type: object
+      required: [source, confidence]
+      properties:
+        country_id:
+          type: [string, 'null']
+          format: uuid
+        area_id:
+          type: [string, 'null']
+          format: uuid
+        city_id:
+          type: [string, 'null']
+          format: uuid
+        source:
+          type: string
+          enum: [network, fallback, unavailable]
+        confidence:
+          type: string
+          enum: [low, medium]
+    MeResponse:
+      type: object
+      required: [user_id, person_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        person_id:
+          type: string
+          format: uuid
+        workspace_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ProfessionalProfile:
+      type: object
+      required: [id, profession_id, lifecycle_status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        profession_id:
+          type: string
+          format: uuid
+        lifecycle_status:
+          type: string
+          enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
+        slug:
+          type: [string, 'null']
+        version:
+          type: integer
+          minimum: 1
+    CreateProfessionalProfile:
+      type: object
+      additionalProperties: false
+      required: [profession_id]
+      properties:
+        profession_id:
+          type: string
+          format: uuid
+        preferred_slug:
+          type: string
+          maxLength: 100
+    Booking:
+      type: object
+      required: [id, state, service_offer_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [requested, accepted, rejected, withdrawn, in_progress, completed, cancelled_by_client, cancelled_by_provider, reschedule_requested, disputed]
+        service_offer_id:
+          type: string
+          format: uuid
+    CreateReview:
+      type: object
+      additionalProperties: false
+      required: [target_kind, target_id, rating]
+      properties:
+        target_kind:
+          type: string
+          enum: [professional, organization, location]
+        target_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 3000
+    Review:
+      allOf:
+        - $ref: '#/components/schemas/CreateReview'
+        - type: object
+          required: [id, experience_id, status]
+          properties:
+            id:
+              type: string
+              format: uuid
+            experience_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [submitted, published, under_review, hidden, removed]
+    ApiError:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Insufficient resource permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Duplicate or invalid concurrent transition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not public or not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+                  next_cursor:
+                    type: [string, 'null']
+                  suggested_expansions:
+                    type: array
+                    items:
+                      type: object
+                      required: [scope, label]
+                      properties:
+                        scope:
+                          type: string
+                          enum: [area, country, global, online]
+                        label:
+                          type: string
   /guest-inquiries/challenges:
     post:
       tags: [Bookings]
