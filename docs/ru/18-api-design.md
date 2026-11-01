@@ -76,3 +76,29 @@ profile.published.v1, affiliation.accepted.v1, affiliation.ended.v1, assignment.
 В каждый результат включать `location_label`/`service_area`, `delivery_mode`, `currency`, `is_sponsored`, `is_within_selected_area` (с корректной проверкой зоны обслуживания). При недостатке результатов возвращать `suggested_expansions` с явными действиями, но не менять scope автоматически без обозначения. Публичные ссылки /{locale}/{country}/{city}/... или эквивалентные канонические маршруты требуют ADR: один город в разных странах должен иметь разные стабильные идентификаторы, `hreflang`, `canonical` и sitemap только для страниц с доступным предложением.
 
 **Глобальность данных не означает доступность услуг во всех странах.** Feature flags по стране/категории, отдельные условия обработки персональных данных, валюты и регуляторика; возможность гостевого поиска не зависит от юридического наличия локального продавца.
+
+## Дополнение v0.5 — простые заявки и страницы мастера в компании
+[ADR-0003](https://github.com/nurgeldiserikbay/services/blob/main/docs/adr/0003-simple-booking-company-view.md) отменяет ранее приведённые примеры `reschedule_requested` и `Quote` для MVP. API должен иметь только простые переходы `pending → accepted|declined|cancelled`, `accepted → completed|cancelled`; изменение времени — `PATCH /v1/requests/:id/schedule` с версией, проверкой роли и историей.
+
+| Операция (предлагаемая) | Доступ | Назначение |
+| --- | --- | --- |
+| GET /v1/professionals/:slug | Гость | Независимая страница и личные CTA/услуги |
+| GET /v1/organizations/:org_id/professionals/:profile_id | Гость | View внутри компании с пересечением разрешений двух сторон |
+| PATCH /v1/professional-profiles/:id/company-views/:org_id/permissions | Мастер | Разрешает корпоративный показ полей и фото |
+| PATCH /v1/organizations/:org_id/team/:profile_id/view | Компания | Выбирает разрешённые поля, брендовый layout и корпоративное описание |
+| GET/PUT /v1/service-offers/:id/intake | Продавец | Выбор каналов, скрытия календаря, режима приёма |
+| POST /v1/requests | Клиент или guest capability | Создаёт `pending`; seller определяется сервером по offer/context |
+| POST /v1/requests/:id/accept | Продавец/оператор | Принятие с idempotency и проверкой известных слотов |
+| POST /v1/requests/:id/decline | Продавец/оператор | Отклонение |
+| POST /v1/requests/:id/cancel | Клиент или продавец согласно ACL | Отмена с освобождением известного busy block |
+| POST /v1/requests/:id/complete | Продавец/оператор | Отметка выполнения, не автоматический verified review |
+| PATCH /v1/requests/:id/schedule | Продавец/оператор | Меняет дату после внешней договорённости, уведомляет по возможности |
+| GET/PUT /v1/me/availability-allocations | Мастер | Личные/корпоративные интервалы и исключения |
+| GET/PUT /v1/organizations/:id/availability-allocations | Компания в scope | Согласование корпоративных интервалов мастера |
+| GET /v1/public-availability?offer_id= | Гость | Только публичные свободные/занятые интервалы выбранного контекста |
+| GET/POST/DELETE /v1/me/saved-items | Авторизованный клиент | Сохранение страниц/услуг в своём кабинете |
+| GET /v1/seller/analytics | Продавец с ACL | Агрегаты и только допустимые уникальные авторизованные обращения |
+
+**Общие правила:** открытые публичные endpoints не возвращают неразрешённые компанией/мастером поля или приватную занятость. Действие по корпоративному offer не может стать заявкой независимого специалиста по подменённому `seller_id`; запрещать IDOR. Все mutating POST — idempotency, ограничение частоты и optimistic version. Гостевой контакт с OTP даёт scoped доступ к своей заявке, но не к другим данным клиента. Платформа не должна сохранять текст звонков или WhatsApp без отдельной, правомерной функции.
+
+**OpenAPI в `contracts/openapi.yaml` остаётся частичным draft:** до генерации SDK дополнить указанные endpoints, схемы и ошибочные случаи, убрать старые enum/маршруты `Quote` или переговорных стадий.
