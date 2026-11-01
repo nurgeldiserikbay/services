@@ -78,3 +78,10 @@ Unit: profiles one-per-profession; domain transitions; review target. DB integra
 Подробная спецификация [Modular Boundaries](https://github.com/nurgeldiserikbay/services/blob/main/docs/architecture/modular-boundaries.md) фиксирует владельца каждой предметной модели: Identity, Geography, Taxonomy, Professional, Organization, Offer, Availability, ServiceRequest, Reliability, Experience/Reviews, Notifications, Engagement, Moderation. Она определяет транзакции создания/принятия/отмены заявки, публикации company view, отзывов и завершения Affiliation.
 
 **Критично:** одна глобальная платформа не означает один JS-бандл и единый горячий SQL-запрос. SSR/CDN — для опубликованных страниц, `no-store` — для личных заявок, OTP, рейтинговых событий и контактов гостей. Индексы/пагинация, серверный geo/taxonomy lookup, раздельные lazy components и worker/outbox до масштабирования микросервисами. Публичная витрина не загружает редактор или календарь, пока пользователь не попросил их.
+
+## Outbox, guest scopes, продавец и исполнитель v0.9
+Уведомления больше не требуют выдуманного CancellationEvent для каждого события: `DomainOutboxEvent` хранит запись события после успешной доменной транзакции, `NotificationIntent.domain_event_id` — назначенных адресатов, `NotificationDelivery` — отдельные попытки email/SMS/in-app. На отмене существует дополнительная связь `cancellation_id` и **ровно два адресата**. Создание/принятие/отклонение используют общий outbox без fake cancellation.
+
+В `ServiceRequest` роли `seller_professional|seller_organization` и `performer_professional_id?` различаются; company offer может быть выполнен мастером, но остаётся заявкой компании. `BusyBlock` имеет `context` и `organization_id?`, подтверждённый слот принадлежит соответствующему контексту; внешние подробности не раскрываются.
+
+Auth: `AccountAuthChallenge` и `GuestCapability` с отдельными scopes и hashed secrets, session token-family rotation, User consent. Никакой guest OTP не создаёт User автоматически. Все SQL/Prisma reference находятся в `contracts/prisma/` и проходят CI с реальной временной PostgreSQL БД; перенос в `services-back` требует полноценного migration/test review.
