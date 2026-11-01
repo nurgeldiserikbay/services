@@ -77,3 +77,10 @@ Each action supports `idle → pending → success / validation_error / permissi
 
 ## Remaining design assets and sign-off
 This is a **screen specification**, not a pixel-perfect interactive prototype. Before implementation sign-off, produce Figma/mobile visual prototypes, usability review and confirm real text length in kk/ru. Do not claim UX approved on the strength of this file alone.
+
+## Runnable prototype (v1)
+**Preview:** https://nurgeldiserikbay.github.io/services/prototype.html
+
+The standalone preview implements a responsive, illustrative subset of the 16 screen contracts: guest discovery/location/search, independent master profile, corporate team and company CTA, guest request simulation, client saved items/history/reliability cancellation, seller contact channels/cancellation policy, and company-view field intersection. This is a **nonproduction UX simulator**: fictitious people, companies and reviews, no network sends, no SMS, no WhatsApp/calls, no real persistence, no authorization or live availability. The demo reliability score is an illustrative arithmetic scenario, not live account data.
+
+Implementation sources: `prototype.html`, `assets/prototype.css`, `assets/prototype.js`. Automated browser acceptance: `scripts/test-prototype.mjs` / `.github/workflows/prototype.yml` (desktop and 390 px mobile Chromium screenshots). Before app implementation, convert the screens into approved interactive Figma/production design tokens, complete kk/ru translation, accessibility review and backend-authenticated E2E.
