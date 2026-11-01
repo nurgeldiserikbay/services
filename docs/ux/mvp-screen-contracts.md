@@ -84,3 +84,10 @@ This is a **screen specification**, not a pixel-perfect interactive prototype. B
 The standalone preview implements a responsive, illustrative subset of the 16 screen contracts: guest discovery/location/search, independent master profile, corporate team and company CTA, guest request simulation, client saved items/history/reliability cancellation, seller contact channels/cancellation policy, and company-view field intersection. This is a **nonproduction UX simulator**: fictitious people, companies and reviews, no network sends, no SMS, no WhatsApp/calls, no real persistence, no authorization or live availability. The demo reliability score is an illustrative arithmetic scenario, not live account data.
 
 Implementation sources: `prototype.html`, `assets/prototype.css`, `assets/prototype.js`. Automated browser acceptance: `scripts/test-prototype.mjs` / `.github/workflows/prototype.yml` (desktop and 390 px mobile Chromium screenshots). Before app implementation, convert the screens into approved interactive Figma/production design tokens, complete kk/ru translation, accessibility review and backend-authenticated E2E.
+
+## Расширение интерактивного прототипа v2
+[Открыть Services UX-прототип](https://nurgeldiserikbay.github.io/services/prototype.html) · [Матрица экранов → бизнес-правила/API](prototype-v2-mapping.md).
+
+Добавлены **отдельная корпоративная версия страницы специалиста** (не личная страница) и **статус простой заявки** с демо-inbox продавца. Можно отправить демонстрационную заявку мастеру или компании, увидеть PENDING, принять/отклонить со стороны продавца, отменить с двумя *симулированными* уведомлениями и проверить отсутствие штрафа без подтверждённого времени. Разрешённые мастер/компания поля обновляют корпоративную карточку в том же прототипе.
+
+Контакт гостя в демо не отправляется и не сохраняется; OTP, backend, доступ к чужим заявкам, настоящая доставка уведомлений и сохранение истории не реализованы. Новый UX smoke проверяет seller routing, field revocation, event journal и mobile. Это UX decision support, **не готовая функция приложения**.
