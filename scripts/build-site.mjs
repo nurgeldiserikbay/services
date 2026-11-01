@@ -90,6 +90,7 @@ function exMd(source,id){
  const special=x=>/^(#{1,6}\s|>\s|[-*]\s|\d+\.\s|```|---+$)/.test(x)||tab(x);
  while(i<lines.length){
   const line=lines[i].trim(); if(!line){i++;continue}
+  if(line.startsWith("![")){const img=line.match(/^!\[([^\]]+)\]\(\.\.\/\.\.\/assets\/([a-z0-9-]+\.svg)\)$/);if(img){const url="assets/"+img[2];out.push('<figure class="diagram"><img src="'+url+'" alt="'+exEsc(img[1])+'" loading="lazy" decoding="async"/><figcaption><a href="'+url+'" target="_blank" rel="noopener noreferrer">Открыть схему крупно ↗</a></figcaption></figure>');i++;continue;}}
   if(/^#\s/.test(line)){i++;continue}
   if(/^#{2,6}\s/.test(line)){let level=Math.min(6,line.match(/^#+/)[0].length+1),title=line.replace(/^#{2,6}\s+/,"");const anchor=id+"-h"+(++h);out.push("<h"+level+' id="'+anchor+'">'+exInline(title)+' <a class="anchor" href="#'+anchor+'" aria-label="Ссылка на раздел">#</a></h'+level+'>');i++;continue}
   if(line.startsWith("```")){let language=line.slice(3).trim(),code=[];i++;while(i<lines.length&&!lines[i].trim().startsWith("```"))code.push(lines[i++]);if(i<lines.length)i++;out.push('<div class="code-head">'+exEsc(language||"code")+'</div><pre><code>'+exEsc(code.join("\n"))+'</code></pre>');continue}
