@@ -3,8 +3,8 @@
   'use strict';
   const $ = (selector, parent=document) => parent.querySelector(selector);
   const $$ = (selector, parent=document) => [...parent.querySelectorAll(selector)];
-  const pages = ['home','professional','company','client','seller'];
-  const state = {city:'Караганда',query:'',saved:new Set(),receiver:'professional',sampleCancelled:false,score:100,language:'ru'};
+  const pages = ['home','professional','company','company-professional','request-status','client','seller'];
+  const state = {city:'Караганда',query:'',saved:new Set(),receiver:'professional',sampleCancelled:false,score:100,language:'ru',demoRequest:null};
   let toastTimer;
   const locations = {'Караганда':'Караганда','Алматы':'Алматы','Астана':'Астана','Весь мир':'Весь мир','Онлайн':'Онлайн'};
   const requestDialog = $('#requestDialog');
@@ -20,7 +20,8 @@
   const navigate = (page, shouldScroll=true) => {
     if(!pages.includes(page))return;
     $$('.screen').forEach(el => {el.hidden = el.id !== 'screen-'+page;el.classList.toggle('active-screen',!el.hidden);});
-    $$('[data-page]').forEach(el=>el.classList.toggle('nav-active',el.dataset.page===page && el.closest('.top-nav')!==null));
+    const activeNav = page==='company-professional'?'company':page==='request-status'?'client':page;
+    $('[data-page]').forEach(el=>el.classList.toggle('nav-active',el.dataset.page===activeNav && el.closest('.top-nav')!==null));
     if(shouldScroll)window.scrollTo({top:0,behavior:'instant'});
     const heading=$('#screen-'+page+' h1');
     if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
@@ -71,6 +72,112 @@
     $('#requestDate').value='';
     requestDialog.showModal();
   };
+  // All fake events are kept only in memory. Never store the input contact in the demo state.
+  const requestStatusNames = {
+    pending:'Ожидает ответа',accepted:'Принята',declined:'Отклонена',
+    cancelled_by_customer:'Отменена клиентом',cancelled_by_provider:'Отменена продавцом'
+  };
+  const demoEvent=(message)=>{
+    if(state.demoRequest)state.demoRequest.events.push(message);
+  };
+  const renderDemoRequest=()=>{
+    const req=state.demoRequest;
+    if(!req){
+      $('#demoRequestNumber').textContent='Заявка ещё не создана';
+      $('#demoRequestStatus').textContent='Нет заявки';
+      $('#demoRequestReceiver').textContent='—';
+      $('#demoRequestNote').textContent='—';
+      $('#demoRequestDate').textContent='—';
+      $('#demoRequestScheduled').textContent='Не согласовано';
+      $('#demoRequestEvents').replaceChildren();
+      const li=document.createElement('li');
+      li.textContent='Отправьте демонстрационную заявку из профиля специалиста или компании.';
+      $('#demoRequestEvents').append(li);
+      $('#demoCancelRequest').disabled=true;
+      $('#demoRecentRequest').hidden=true;
+      $('#demoInboxBody').replaceChildren();
+      const none=document.createElement('span');none.className='muted';
+      none.textContent='Пока нет демонстрационных обращений.';$('#demoInboxBody').append(none);
+      return;
+    }
+    const recipient=req.seller==='company'?'Flora Studio — компания':'Айгүл С. — лично';
+    $('#demoRequestNumber').textContent='Демо-заявка №001';
+    $('#demoRequestStatus').className='req-status '+req.status;
+    $('#demoRequestStatus').textContent='● '+requestStatusNames[req.status];
+    $('#demoRequestReceiver').textContent=recipient;
+    $('#demoRequestContext').textContent=req.seller==='company'?'Продавец: компания. Специалист может выполнить её услугу, но не получает личную заявку.':'Продавец: независимый специалист.';
+    $('#demoRequestNote').textContent=req.note||'Без описания';
+    $('#demoRequestDate').textContent=req.preferredDate ? req.preferredDate+' (пожелание, не подтверждено)' : 'Не указана';
+    $('#demoRequestScheduled').textContent='Не согласовано в Services (дата — только пожелание)';
+    $('#demoRequestReliability').textContent='Без подтверждённого времени запись не имеет объективного дедлайна. Отмена не должна автоматически ухудшать надёжность клиента.';
+    $('#demoCancelRequest').disabled=!['pending','accepted'].includes(req.status);
+    $('#demoRecentRequest').hidden=false;
+    const journal=$('#demoRequestEvents');journal.replaceChildren();
+    req.events.forEach(item=>{
+      const li=document.createElement('li');li.textContent=item;journal.append(li);
+    });
+    const inbox=$('#demoInboxBody');inbox.replaceChildren();
+    const entry=document.createElement('div');entry.className='inbox-entry';
+    const title=document.createElement('strong');title.textContent=recipient+' · '+requestStatusNames[req.status];entry.append(title);
+    const paragraph=document.createElement('p');paragraph.textContent=req.preferredDate?'Желаемая дата: '+req.preferredDate+'. Время не подтверждено.':'Клиент не указал дату. Календарь необязателен.';entry.append(paragraph);
+    if(['pending','accepted'].includes(req.status)){
+      const actions=document.createElement('div');actions.className='inbox-actions';
+      const options=req.status==='pending'
+        ?[{id:'accept',label:'Принять',primary:true},{id:'decline',label:'Отклонить'}]
+        :[{id:'seller-cancel',label:'Отменить со стороны продавца'}];
+      options.forEach(choice=>{
+        const btn=document.createElement('button');btn.type='button';
+        btn.dataset.demoDecision=choice.id;
+        btn.className='btn '+(choice.primary?'btn-primary':'btn-outline')+' compact';
+        btn.textContent=choice.label;actions.append(btn);
+      });
+      entry.append(actions);
+    }
+    inbox.append(entry);
+  };
+  const createDemoRequest=()=>{
+    const source=state.receiver;
+    const rawNote=$('#requestNote').value.trim();
+    const preferredDate=$('#requestDate').value||null;
+    state.demoRequest={
+      seller:source,
+      note:rawNote.slice(0,300),
+      preferredDate,
+      status:'pending',
+      events:[
+        'Заявка создана локально в демо; настоящая OTP-проверка и отправка не выполнялись.',
+        'Уведомление продавцу о новой заявке — симуляция DomainOutboxEvent.'
+      ]
+    };
+    renderDemoRequest();navigate('request-status');
+    showToast('Демо-заявка создана только в памяти этой страницы. Ничего не отправлено.');
+  };
+  const sellerDecision=action=>{
+    const req=state.demoRequest;
+    if(!req)return;
+    if(action==='accept' && req.status==='pending'){
+      req.status='accepted';
+      demoEvent('Продавец принял заявку. Клиенту поставлено в очередь демонстрационное уведомление.');
+      demoEvent('Согласованное время пока неизвестно: deadline отмены и рейтинг не вычисляются.');
+    }else if(action==='decline' && req.status==='pending'){
+      req.status='declined';
+      demoEvent('Продавец отклонил заявку. Клиенту поставлено в очередь демонстрационное уведомление.');
+    }else if(action==='seller-cancel' && req.status==='accepted'){
+      req.status='cancelled_by_provider';
+      demoEvent('Продавец отменил принятую заявку. Подтверждение инициатору и уведомление клиенту — 2 логические симуляции.');
+      demoEvent('Надёжность продавца может измениться по правилам и исключениям; показатель качества услуг не меняется.');
+    }else return;
+    renderDemoRequest();navigate('request-status');
+    showToast('Действие продавца показано только в прототипе.');
+  };
+  const cancelDemoRequest=()=>{
+    if(!state.demoRequest||!['pending','accepted'].includes(state.demoRequest.status))return;
+    state.demoRequest.status='cancelled_by_customer';
+    demoEvent('Клиент отменил заявку. Подтверждение клиенту и уведомление продавцу — 2 логические симуляции.');
+    demoEvent('Надёжность не изменена: согласованного времени и deadline не было.');
+    renderDemoRequest();
+    showToast('Отмена продемонстрирована. SMS или сообщения не отправлялись.');
+  };
   const updatePolicy=()=>{
     const hours=Number($('#cancelWindow').value);
     $('#policyPreview').textContent=hours ? 'За '+hours+' ч до начала' : 'До начала записи';
@@ -85,6 +192,12 @@
     const fieldNames={bio:'Описание',portrait:'Фото',portfolio:'Портфолио',personalPhone:'Личный телефон'};
     const shown=Object.keys(fieldNames).filter(field=>$('[data-master-field="'+field+'"]').checked && $('[data-company-field="'+field+'"]').checked);
     $('#visibleCompanyFields').textContent=shown.length?shown.map(k=>fieldNames[k]).join(', '):'Ничего: мастер или компания не разрешили поля.';
+    // Corporate embedded view always reflects the intersection of both permissions.
+    $('#embeddedPortrait').hidden=!shown.includes('portrait');
+    $('#embeddedBio').hidden=!shown.includes('bio');
+    $('#embeddedPortfolio').hidden=!shown.includes('portfolio');
+    $('#embeddedPhone').hidden=!shown.includes('personalPhone');
+    $('#embeddedNothing').hidden=shown.length!==0;
     $$('[data-company-field]').forEach(box=>{
       const master=$('[data-master-field="'+box.dataset.companyField+'"]');
       // Company can preselect a field, but not publish it without master's grant.
@@ -126,6 +239,8 @@
     const location=event.target.closest('[data-location]');
     if(location){setLocation(location.dataset.location);return}
     if(event.target.closest('[data-reset-search]')){navigate('home',false);search('');return}
+    const sellerButton=event.target.closest('[data-demo-decision]');
+    if(sellerButton){sellerDecision(sellerButton.dataset.demoDecision);return}
     if(event.target.closest('[data-demo-contact]')){
       showToast('Демо: внешние звонки и WhatsApp отключены. Никакая связь не инициируется.');
       return;
@@ -142,8 +257,9 @@
     event.preventDefault();
     if(!$('#requestContact').reportValidity())return;
     requestDialog.close();
-    showToast('Сценарий заявки показан. Данные не отправлены, OTP не отправлялся.');
+    createDemoRequest();
   });
+  $('#demoCancelRequest').addEventListener('click',cancelDemoRequest);
   $('#cancelSample').addEventListener('click',()=>{updateCancelWarning();cancelDialog.showModal()});
   $$('input[name=cancelMode]').forEach(el=>el.addEventListener('change',updateCancelWarning));
   $('#cancelForm').addEventListener('submit',event=>{
@@ -177,7 +293,7 @@
   $$('.modal').forEach(d=>d.addEventListener('click',event=>{
     if(event.target===d)d.close();
   }));
-  updateSaved();updatePermissionPreview();updatePolicy();updateChannels();
+  updateSaved();updatePermissionPreview();updatePolicy();updateChannels();renderDemoRequest();
   const initial=location.hash.replace('#','');
   navigate(pages.includes(initial)?initial:'home',false);
 })();
