@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7faf9">
+  <meta name="description" content="Services — интерактивный UX-прототип поиска услуг, специалиста, компании, заявки и кабинета. Демонстрационные данные, без реальных отправок.">
+  <title>Services — UX-прототип</title>
+  <link rel="stylesheet" href="assets/prototype.css">
+  <script src="assets/prototype.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#content">Перейти к содержимому</a>
+<div class="demo-ribbon" role="status"><span class="demo-dot"></span><strong>UX-ПРОТОТИП</strong><span>Данные вымышлены. Заявки, SMS и звонки не отправляются.</span><a href="index.html">Документация</a></div>
+<header class="mast">
+  <div class="mast-inner">
+    <button class="brand" type="button" data-page="home" aria-label="Services — на главную"><span class="brandmark"><span></span><span></span><span></span><span></span></span>services<span class="brand-dot">.</span></button>
+    <button class="place-control" id="placeButton" type="button" aria-haspopup="dialog" aria-controls="locationDialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-5.5-7-12a7 7 0 0 1 14 0c0 6.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg><span id="currentPlace">Караганда</span><span class="chevron">⌄</span></button>
+    <nav class="top-nav" aria-label="Разделы прототипа">
+      <button data-page="home" class="nav-active" type="button">Поиск</button>
+      <button data-page="professional" type="button">Специалист</button>
+      <button data-page="company" type="button">Компания</button>
+      <button data-page="client" type="button">Мой кабинет</button>
+      <button data-page="seller" type="button">Для исполнителя</button>
+    </nav>
+    <div class="mast-actions">
+      <label class="language" aria-label="Язык прототипа"><select id="languageSelect"><option value="ru">RU</option><option value="kk">ҚАЗ</option></select></label>
+      <button id="authButton" class="avatar-mini" type="button" title="Демо кабинет" data-page="client" aria-label="Демо кабинет">Н</button>
+    </div>
+  </div>
+</header>
+<main id="content" tabindex="-1">
+  <section class="screen active-screen" id="screen-home" aria-labelledby="homeHeading">
+    <div class="hero shell">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="mini-sparkle">✦</span> УСЛУГИ РЯДОМ С ВАМИ</div>
+        <h1 id="homeHeading">Найти нужного <em>человека</em> — просто.</h1>
+        <p class="lead">Специалисты, компании и услуги в вашем городе. Контакты и страницы открыты без регистрации.</p>
+        <form id="searchForm" class="search-box" role="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+          <label class="sr-only" for="searchInput">Поиск услуги</label>
+          <input id="searchInput" type="search" placeholder="Какую услугу вы ищете?" autocomplete="off">
+          <button class="btn btn-primary" type="submit">Найти <span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="popular"><span>Популярное:</span><button type="button" data-query="Стрижка">Стрижка</button><button type="button" data-query="Электрик">Электрик</button><button type="button" data-query="Уборка">Уборка</button></div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="orb orb-one"></div><div class="orb orb-two"></div>
+        <div class="float-card float-a"><span class="float-icon">✂</span><div><b>Найден специалист</b><small>Рядом с вами</small></div><span class="float-tick">✓</span></div>
+        <div class="float-card float-b"><span class="float-icon bg-cream">⌂</span><div><b>Удобная запись</b><small>Выберите способ связи</small></div></div>
+        <div class="hero-core"><span class="hero-core-ring">✳</span><span class="hero-core-title">services<span>.</span></span><span class="hero-core-tag">место, где находят друг друга</span></div>
+        <div class="hero-orbit o1"></div><div class="hero-orbit o2"></div>
+      </div>
+    </div>
+    <div class="shell">
+      <div class="section-head"><div><span class="eyebrow subdued">ВЫБОР БЕЗ ЛИШНИХ ШАГОВ</span><h2>Что вам нужно?</h2></div><p>Категории для примера — ещё не настоящий каталог</p></div>
+      <div class="categories" id="categories">
+        <button type="button" data-query="Стрижка"><span class="category-icon lilac">✂</span><strong>Красота</strong><small>Стрижка, уход</small></button>
+        <button type="button" data-query="Электрик"><span class="category-icon yellow">⚡</span><strong>Ремонт</strong><small>Дом и техника</small></button>
+        <button type="button" data-query="Уборка"><span class="category-icon mint">✿</span><strong>Для дома</strong><small>Уборка, помощь</small></button>
+        <button type="button" data-query="Онлайн"><span class="category-icon blue">◎</span><strong>Онлайн</strong><small>Без границ</small></button>
+      </div>
+      <div class="section-head list-head"><div><span class="eyebrow subdued">РЕКОМЕНДАЦИИ В ДЕМО</span><h2>Найдено для вас <span id="resultCount" class="number-chip">3</span></h2></div><button type="button" id="filterButton" class="filter-button">В вашем городе <span>⌄</span></button></div>
+      <div id="searchFeedback" class="search-feedback" aria-live="polite"></div>
+      <div class="results" id="results">
+        <article class="listing-card" data-item="professional" data-search="айгүл стрижка окрашивание парикмахер красота колористика">
+          <div class="listing-visual portrait pro-bg"><div class="face-illustration"><div class="face-hair"></div><div class="face-head"></div><div class="face-neck"></div><div class="face-body"></div></div><span class="visual-pill">Специалист</span></div>
+          <div class="listing-content"><span class="listing-overline">НЕЗАВИСИМЫЙ СПЕЦИАЛИСТ</span><h3>Айгүл С.</h3><p class="listing-role">Парикмахер · колорист</p><div class="rating"><span class="star">★</span> 4,9 <span class="muted">· 38 отзывов (демо)</span></div><p class="listing-summary">Стрижки и окрашивание с вниманием к деталям.</p><div class="listing-foot"><span>📍 <span data-city>Караганда</span></span><button type="button" data-page="professional" class="text-link">Открыть профиль ↗</button></div></div>
+        </article>
+        <article class="listing-card" data-item="company" data-search="studio flora салон красоты маникюр стрижка парикмахер красота">
+          <div class="listing-visual company-bg"><div class="logo-picture">flora<span>✳</span><small>beauty studio</small></div><span class="visual-pill">Компания</span></div>
+          <div class="listing-content"><span class="listing-overline">КОМПАНИЯ · САЛОН</span><h3>Flora Studio</h3><p class="listing-role">Стрижка, маникюр, уход</p><div class="rating"><span class="star">★</span> 4,8 <span class="muted">· 84 отзыва (демо)</span></div><p class="listing-summary">Салон и команда специалистов. Запись от имени компании.</p><div class="listing-foot"><span>📍 <span data-city>Караганда</span></span><button type="button" data-page="company" class="text-link">Открыть компанию ↗</button></div></div>
+        </article>
+        <article class="listing-card" data-item="electrician" data-search="электрик ремонт розетки свет домашний мастер">
+          <div class="listing-visual electric-bg"><div class="electro-art"><span>⚡</span></div><span class="visual-pill">Специалист</span></div>
+          <div class="listing-content"><span class="listing-overline">НЕЗАВИСИМЫЙ СПЕЦИАЛИСТ</span><h3>Арман Т.</h3><p class="listing-role">Электрик · помощь по дому</p><div class="rating"><span class="star">★</span> 4,7 <span class="muted">· 21 отзыв (демо)</span></div><p class="listing-summary">Мелкий ремонт, освещение, диагностика.</p><div class="listing-foot"><span>📍 <span data-city>Караганда</span></span><button type="button" data-page="professional" class="text-link">Посмотреть пример ↗</button></div></div>
+        </article>
+      </div>
+      <div id="emptyResults" class="empty-results" hidden><span>⌕</span><h3>Пока ничего не нашлось</h3><p>Попробуйте другую услугу или расширьте регион поиска.</p><button class="btn btn-outline" data-reset-search type="button">Сбросить поиск</button></div>
+      <div class="note-banner"><div class="note-symbol">✧</div><div><strong>Глобальная платформа, локальный поиск.</strong><p>Город можно изменить вручную в любой момент. GPS не требуется.</p></div><button class="btn btn-outline" type="button" data-open-location>Выбрать регион</button></div>
+    </div>
+  </section>
+
+  <section class="screen shell detail-layout" id="screen-professional" aria-labelledby="professionalHeading" hidden>
+    <div class="breadcrumbs"><button data-page="home" type="button">Поиск</button><span>›</span>Специалист</div>
+    <div class="detail-grid"><div class="detail-main">
+      <div class="profile-hero"><div class="profile-picture pro-bg"><div class="face-illustration"><div class="face-hair"></div><div class="face-head"></div><div class="face-neck"></div><div class="face-body"></div></div></div><div class="profile-intro"><span class="eyebrow subdued">НЕЗАВИСИМЫЙ СПЕЦИАЛИСТ</span><h1 id="professionalHeading">Айгүл С.</h1><p>Парикмахер · колорист</p><div class="rating"><span class="star">★</span> 4,9 <span class="muted">· 38 отзывов (демо)</span></div><div class="profile-tags"><span>✓ Подтверждённый профиль (демо)</span><span>📍 <span data-city>Караганда</span></span></div></div></div>
+      <div class="content-panel"><div class="content-panel-top"><h2>О специалисте</h2><button class="save-button" data-save="professional" aria-pressed="false" type="button">♡ Сохранить</button></div><p>Люблю естественные формы и спокойный сервис. В этом примере у мастера есть самостоятельные услуги и отдельное представление внутри салона.</p></div>
+      <div class="content-panel"><h2>Личные услуги</h2><div class="service-line"><span class="service-symbol">✂</span><div><strong>Женская стрижка</strong><small>Ориентир: 60 минут · цена по желанию продавца</small></div><button type="button" class="btn btn-outline compact" data-request="professional">Заявка</button></div><div class="service-line"><span class="service-symbol">✳</span><div><strong>Окрашивание</strong><small>Время и стоимость обсуждаются напрямую</small></div><button type="button" class="btn btn-outline compact" data-request="professional">Заявка</button></div></div>
+      <div class="content-panel"><h2>Также работает в компании</h2><div class="affiliation"><div class="affiliation-logo">fl</div><div><strong>Flora Studio</strong><small>Другая страница, другие услуги и получатель заявки</small></div><button type="button" class="text-link" data-page="company">Перейти ↗</button></div><p class="small-note">При переходе в корпоративный контекст заявка направляется компании, а не мастеру лично.</p></div>
+    </div><aside class="detail-aside"><div class="contact-card"><span class="eyebrow subdued">ОБРАТИТЬСЯ К СПЕЦИАЛИСТУ</span><h2>Записаться к Айгүл</h2><p>Получатель заявки: <strong>Айгүл С., лично</strong></p><button class="btn btn-primary full" data-request="professional" type="button">Отправить заявку ↗</button><button class="btn btn-outline full" data-demo-contact="whatsapp" type="button">Написать в WhatsApp</button><button class="btn btn-subtle full" data-demo-contact="phone" type="button">Позвонить</button><div class="policy-mini">◷ Пример правила: отмена за 2 часа до принятой записи — без влияния на надёжность.</div></div><div class="quiet-panel"><strong>Календарь необязателен</strong><p>В этом примере специалист не публикует свободные слоты. Заявку можно отправить и без выбора даты.</p></div></aside></div>
+  </section>
+
+  <section class="screen shell detail-layout" id="screen-company" aria-labelledby="companyHeading" hidden>
+    <div class="breadcrumbs"><button data-page="home" type="button">Поиск</button><span>›</span>Компания</div>
+    <div class="detail-grid"><div class="detail-main"><div class="company-hero"><div class="company-emblem">flora<span>✳</span></div><div><span class="eyebrow">КОМПАНИЯ · САЛОН КРАСОТЫ</span><h1 id="companyHeading">Flora Studio</h1><p>Команда специалистов, пространство для красоты</p><span class="tag-white">📍 <span data-city>Караганда</span></span></div></div>
+      <div class="content-panel"><h2>Услуги салона</h2><div class="service-line"><span class="service-symbol">✂</span><div><strong>Стрижка в Flora Studio</strong><small>Получатель заявки — компания</small></div><button class="btn btn-outline compact" type="button" data-request="company">Заявка</button></div><div class="service-line"><span class="service-symbol">✿</span><div><strong>Уход и окрашивание</strong><small>Специалист назначается компанией по согласованию</small></div><button class="btn btn-outline compact" type="button" data-request="company">Заявка</button></div></div>
+      <div class="content-panel"><h2>Команда салона</h2><p class="text-secondary">Та же профессиональная личность может выглядеть иначе внутри компании — только с согласия обеих сторон.</p><div class="team-card"><div class="team-portrait pro-bg"><div class="face-illustration"><div class="face-hair"></div><div class="face-head"></div><div class="face-neck"></div><div class="face-body"></div></div></div><div><span class="eyebrow subdued">СПЕЦИАЛИСТ В КОМПАНИИ</span><h3>Айгүл С.</h3><p>Стилист Flora Studio</p><span class="tiny-tag">Только согласованные поля профиля</span></div><button class="btn btn-primary compact" type="button" data-request="company">Запись в салон</button></div><p class="small-note">Нажатие на карточку сотрудника не переводит заявку в независимую практику.</p></div>
+    </div><aside class="detail-aside"><div class="contact-card"><span class="eyebrow subdued">КОРПОРАТИВНЫЙ КОНТЕКСТ</span><h2>Обратиться в Flora Studio</h2><p>Получатель: <strong>Flora Studio</strong>. Не личный профиль Айгүл.</p><button class="btn btn-primary full" data-request="company" type="button">Отправить заявку ↗</button><button class="btn btn-outline full" data-demo-contact="whatsapp" type="button">Написать в WhatsApp</button><div class="policy-mini">◷ Пример правила компании: отмена за 24 часа до принятой записи.</div></div><div class="quiet-panel"><strong>Разные роли — разные права</strong><p>Компания управляет корпоративной услугой и своими заявками. Личные часы и обращения сотрудника не раскрываются.</p></div></aside></div>
+  </section>
+
+  <section class="screen shell dashboard-screen" id="screen-client" aria-labelledby="clientHeading" hidden>
+    <div class="section-head dashboard-head"><div><span class="eyebrow subdued">ДЕМО-КАБИНЕТ</span><h1 id="clientHeading">Здравствуйте, Нур</h1><p>Сохранённое, ваши обращения и надёжность — всё в одном месте.</p></div><span class="demo-account">● Вы вошли в демонстрационный аккаунт</span></div>
+    <div class="dashboard-grid"><div class="content-panel"><span class="eyebrow subdued">МОЯ НАДЁЖНОСТЬ</span><div class="score-row"><strong id="clientScore">98</strong><span>из 100<br><small>Учебный пример</small></span></div><p>Это отдельный показатель соблюдения принятых записей. Он не связан с оценками качества услуг.</p><button id="scoreInfo" class="text-link" type="button">Как считается показатель ↗</button></div><div class="content-panel"><span class="eyebrow subdued">ИЗБРАННОЕ</span><h2 id="savedCount">0 страниц</h2><p>Сохраняйте интересных специалистов и компании. Другие продавцы не видят ваши закладки.</p><div id="savedList" class="saved-list"><span class="muted">Пока пусто.</span></div></div></div>
+    <div class="content-panel big-panel"><h2>Мои обращения</h2><div class="request-item"><div class="req-status accepted">● Принята</div><div class="req-description"><strong>Стрижка · Айгүл С.</strong><small>Независимый специалист · демонстрационная запись на 12 ноября 2026, 18:00</small><small>Бесплатная отмена до 16:00 этого дня</small></div><button id="cancelSample" class="btn btn-outline compact" type="button">Отменить</button></div><div id="cancelledExample" class="request-item" hidden><div class="req-status cancelled">● Отменена</div><div class="req-description"><strong>Стрижка · Айгүл С.</strong><small id="cancelOutcome">Отмена выполнена в демонстрации</small><small>Уведомления обеим сторонам: поставлены в очередь (симуляция)</small></div></div><div id="sampleAfter" class="small-note">Вы сможете увидеть последствия своевременной и поздней отмены.</div></div>
+    <div class="content-panel"><h2>Что дают аккаунты клиентам?</h2><div class="feature-tiles"><span>♡ Сохранённые страницы</span><span>▤ История своих заявок</span><span>◎ Надёжность и апелляции</span><span>✦ Отзывы при подтверждённом опыте</span></div></div>
+  </section>
+
+  <section class="screen shell dashboard-screen" id="screen-seller" aria-labelledby="sellerHeading" hidden>
+    <div class="section-head dashboard-head"><div><span class="eyebrow subdued">ПРОФИЛЬ ПРОДАВЦА · ДЕМО</span><h1 id="sellerHeading">Как клиентам связаться с вами</h1><p>Каждый исполнитель выбирает свои каналы и правила, без сложной CRM.</p></div><button class="btn btn-outline" data-page="professional" type="button">Предпросмотр страницы ↗</button></div>
+    <div class="seller-grid"><div class="content-panel"><h2>Способы обращения</h2><p>Включите только нужные. Стоимость и календарь не обязательны.</p><div class="switch-list"><label><span><b>Телефон</b><small>Показывать разрешённый контакт</small></span><input type="checkbox" id="channelPhone" checked></label><label><span><b>WhatsApp</b><small>Прямая связь вне платформы</small></span><input type="checkbox" id="channelWhatsapp" checked></label><label><span><b>Заявка через Services</b><small>Клиент отправляет, вы принимаете</small></span><input type="checkbox" id="channelRequest" checked></label><label><span><b>Публичные слоты</b><small>Можно не публиковать расписание</small></span><input type="checkbox" id="channelCalendar"></label></div><p class="inline-validation" id="channelValidation" aria-live="polite"></p></div>
+    <div class="content-panel"><h2>Правила отмены клиентом</h2><p>Устанавливает владелец предложения. Условия видны до принятия записи и сохраняются для неё.</p><label class="field">Отмена без влияния на надёжность за<select id="cancelWindow"><option value="0">До начала записи</option><option value="2" selected>2 часа</option><option value="12">12 часов</option><option value="24">24 часа</option><option value="48">48 часов</option></select></label><div class="info-soft"><strong id="policyPreview">За 2 часа до начала</strong><p>Поздняя отмена зарегистрированным клиентом влияет на его отдельную надёжность. Отмена продавцом может влиять на надёжность продавца.</p></div></div></div>
+    <div class="content-panel"><h2>Время мастера и компания</h2><div class="work-grid"><div class="work-row"><span class="work-label">Пн – Пт</span><div class="work-track"><span class="work-company">09:00–18:00 · Flora Studio</span><span class="work-personal">19:00–22:00 · Лично</span></div></div><div class="work-row"><span class="work-label">Сб</span><div class="work-track"><span class="work-company shorter">10:00–14:00 · Компания B</span></div></div></div><p class="small-note">Корпоративные часы требуют согласования. В другом контексте виден только факт недоступности, не чужие клиенты и услуги.</p></div>
+    <div class="content-panel"><div class="content-panel-top"><h2>Какие поля мастера видит компания?</h2><span class="tiny-tag">Двустороннее управление</span></div><p>Мастер разрешает поля для конкретной компании, компания выбирает подмножество. Итог — пересечение.</p><div class="permission-grid"><fieldset><legend>Разрешает специалист</legend><label><input type="checkbox" data-master-field="bio" checked> Описание</label><label><input type="checkbox" data-master-field="portrait" checked> Фото</label><label><input type="checkbox" data-master-field="portfolio"> Портфолио</label><label><input type="checkbox" data-master-field="personalPhone"> Личный телефон</label></fieldset><fieldset><legend>Выбирает компания</legend><label><input type="checkbox" data-company-field="bio" checked> Описание</label><label><input type="checkbox" data-company-field="portrait" checked> Фото</label><label><input type="checkbox" data-company-field="portfolio" checked> Портфолио</label><label><input type="checkbox" data-company-field="personalPhone" checked> Личный телефон</label></fieldset></div><div class="info-soft"><strong>В корпоративной карточке будет видно:</strong><p id="visibleCompanyFields" aria-live="polite">Описание, фото</p></div></div>
+  </section>
+</main>
+<footer class="site-footer"><div class="shell"><div><strong>services<span>.</span></strong><p>UX-прототип для обсуждения. Все люди, рейтинги и компании вымышлены.</p></div><div><a href="index.html">Читать спецификацию</a><a href="https://github.com/nurgeldiserikbay/services/blob/main/docs/ux/mvp-screen-contracts.md" target="_blank" rel="noopener noreferrer">UX-контракты</a></div></div></footer>
+<dialog id="locationDialog" class="modal">
+  <form method="dialog" class="dialog-inner"><div class="modal-head"><div><span class="eyebrow subdued">ЛОКАЦИЯ</span><h2>Где искать услуги?</h2></div><button class="icon-button" value="cancel" aria-label="Закрыть" type="submit">×</button></div><p>Выбранный город сохраняется только в текущем прототипе. Язык не меняет страну.</p><div class="location-options"><button type="button" data-location="Караганда">📍 Караганда, Казахстан</button><button type="button" data-location="Алматы">📍 Алматы, Казахстан</button><button type="button" data-location="Астана">📍 Астана, Казахстан</button><button type="button" data-location="Весь мир">◎ Весь мир</button><button type="button" data-location="Онлайн">◉ Только онлайн</button></div><p class="small-note">Разрешение GPS не запрашивается. Это демонстрация выбора региона, а не геопоиск.</p></form>
+</dialog>
+<dialog id="requestDialog" class="modal">
+  <form method="dialog" class="dialog-inner" id="requestForm"><div class="modal-head"><div><span class="eyebrow subdued">ПРОСТАЯ ЗАЯВКА</span><h2>Отправить обращение</h2></div><button class="icon-button" value="cancel" aria-label="Закрыть" formnovalidate type="submit">×</button></div><div class="receiver-box"><span>Получатель:</span><strong id="requestReceiver">Айгүл С. — лично</strong><small id="requestRule">Отмена за 2 часа после согласования времени</small></div><label class="field">Коротко опишите запрос<textarea id="requestNote" rows="3" maxlength="300" placeholder="Например: хочу записаться на стрижку"></textarea></label><label class="field">Желаемая дата (необязательно)<input id="requestDate" type="date"></label><label class="field">Контакт для ответа (демо, не отправляется)<input id="requestContact" type="text" placeholder="Телефон или e-mail" required maxlength="100"></label><div class="policy-mini">В реальном сервисе гость подтвердит контакт кодом. В прототипе код не отправляется и данные никуда не сохраняются.</div><button id="requestSubmit" type="submit" class="btn btn-primary full" value="submit">Проверить сценарий отправки ↗</button></form>
+</dialog>
+<dialog id="cancelDialog" class="modal">
+  <form method="dialog" class="dialog-inner" id="cancelForm"><div class="modal-head"><div><span class="eyebrow subdued">ОТМЕНА ПРИНЯТОЙ ЗАПИСИ</span><h2>Отменить стрижку?</h2></div><button class="icon-button" value="cancel" aria-label="Закрыть" type="submit" formnovalidate>×</button></div><p>Пример записи: 12 ноября 2026 в 18:00. Правило мастера: бесплатно до 16:00 того же дня.</p><fieldset class="cancel-scenarios"><legend>Проверить сценарий</legend><label><input type="radio" name="cancelMode" value="early" checked><span><strong>В срок — в 15:00</strong><small>Надёжность не изменится</small></span></label><label><input type="radio" name="cancelMode" value="late"><span><strong>После срока — в 17:30</strong><small>Надёжность зарегистрированного клиента снизится</small></span></label></fieldset><div id="cancelWarning" class="info-soft">При своевременной отмене рейтинг надёжности остаётся прежним.</div><div class="modal-actions"><button class="btn btn-outline" type="submit" value="cancel">Не отменять</button><button class="btn btn-primary" type="submit" value="confirm">Подтвердить отмену</button></div></form>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
