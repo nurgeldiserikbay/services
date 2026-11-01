@@ -92,7 +92,7 @@ BEGIN
   -- Real DB checks the deferred "exactly two" trigger at constraint evaluation.
   SET CONSTRAINTS cancellation_two_intents IMMEDIATE;
 
-  IF (SELECT count(*) FROM notification_intents WHERE cancellation_id = (SELECT id FROM cancellation_events WHERE request_id=request_id)) <> 2 THEN
+  IF (SELECT count(*) FROM notification_intents WHERE dedupe_key IN ('smoke-confirm','smoke-other')) <> 2 THEN
     RAISE EXCEPTION 'Expected two notification intents';
   END IF;
   RAISE NOTICE 'Postgres smoke passed: seller XOR, profile unique, seller routing, busy overlap, two intents';
