@@ -64,3 +64,11 @@ Do not claim code is implemented or legal requirements are satisfied merely beca
 
 ## Recommended stacks
 services-back NestJS + TypeScript + PostgreSQL/Prisma modular monolith; services-admin Next.js; services-front Next.js SSR/PWA and React/Vite/Capacitor mobile in pnpm workspace; kk/ru initially, en-ready.
+
+## Product decisions v0.7: cancellation and reliability
+- Read docs/adr/0004-cancellation-reliability-and-defaults.md and docs/ru/12-roadmap-decisions.md. OPEN-01..14 now have design defaults, not proof of production readiness.
+- Each independent seller/company configures the **customer cancellation grace window** per offer. Snapshot on accepted request with mutually known time; never retroactively change existing records.
+- Cancelling pending or cancelling in time does not penalize customer. Late cancellation by authenticated customer affects **customer reliability**, provider cancellation affects **seller reliability** of independent professional OR company; not the professional assigned by company automatically. Keep quality review stars separate.
+- For **every** cancelled request, create **two** transactional notification intents (initiator and counterparty), then asynchronously deliver with retries and status. Cancellation remains effective if SMS fails.
+- Appeals and explainability; no-show requires review; don't block account or apply monetary penalty based on reliability score.
+- Diagram in docs/diagrams/cancellation-reliability.mmd and assets/cancellation-reliability.svg. Legal/data residency/country checks remain launch gates, not settled by Markdown.
