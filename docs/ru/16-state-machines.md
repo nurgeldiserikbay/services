@@ -55,3 +55,12 @@ submitted → published (если eligible) → reported/under_review → retain
 
 ## Чек-лист тестирования состояний
 Для каждого перехода: позитивный тест, неверный actor, устаревшая версия, повтор команды, другая компания, несовместимое текущее состояние, отмена, журнал аудита, уведомление.
+
+## Отмена и надёжность — переходы v0.7 (ADR-0004)
+`pending → cancelled_by_customer|cancelled_by_provider` допустимо без негативного события; обе стороны получают уведомление. `accepted → cancelled_by_customer|cancelled_by_provider|cancelled_mutual` требует CAS состояния/версии, атомарной записи CancellationEvent, освобождения известного BusyBlock и **двух NotificationIntent**, плюс ровно одного eligible ReliabilityEvent для виновной стороны (или `none`, если исключение/в срок). `cancelled_mutual` доступен **только после подтверждения второй стороной**; первоначальная односторонняя отмена не должна ожидать второго согласия, чтобы освободить время.
+
+Eligibility после accepted: зарегистрированный клиент отменил позже seller snapshot deadline и времени услуги; продавец отменил своё принятое обязательство без подтверждённого исключения (самостоятельный master vs organization seller), с меньшим весом за раннее уведомление; no-show требует проверки. Нет согласованного `scheduled_start_at` → customer late penalty невозможен. Policy change/последующая смена мастера не переписывает прежнее правило.
+
+ReliabilityEvent: `proposed → effective|suppressed → appealed → retained|reversed`; `event_key = request_id + liable_party_role + reason_group`, unique, score агрегируется по versioned policy. Pending review, особенно no-show, не должен автоматически уменьшать публичный показатель. Повторные cancel event/notify подавляются по уникальному ключу. Если notify provider недоступен, retry/fallback, **не** отменять уже завершённый транзакционный переход.
+
+Нужно проверять в тестах cancel vs complete, cancel vs reschedule, 2× cancel, company employee revoked during cancel, guest expired capability, timezone DST, новый offer policy против старого accepted, исключения и апелляции.
