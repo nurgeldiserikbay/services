@@ -286,6 +286,7 @@ model ProfessionalProfile {
   reliability   ReliabilityEvent[]        @relation("ProfessionalReliability")
   reviewTargets Review[]                  @relation("ProfessionalReview")
   sellerRequests ServiceRequest[]         @relation("ProfessionalRequestSeller")
+  performedRequests ServiceRequest[]      @relation("ProfessionalRequestPerformer")
   @@unique([personId, professionId]) // includes PAUSED and ARCHIVED
   @@index([status, professionId])
   @@map("professional_profiles")
@@ -308,6 +309,7 @@ model Organization {
   reviewTargets  Review[]                  @relation("OrganizationReview")
   notifications  NotificationIntent[]
   sellerRequests ServiceRequest[]         @relation("OrganizationRequestSeller")
+  scopedBusyBlocks BusyBlock[]
   @@map("organizations")
 }
 
@@ -474,6 +476,7 @@ model ServiceRequest {
   sourceContext       RequestSourceContext  @map("source_context")
   sellerProfessionalId String?              @map("seller_professional_id") @db.Uuid
   sellerOrganizationId String?              @map("seller_organization_id") @db.Uuid
+  performerProfessionalId String?           @map("performer_professional_id") @db.Uuid
   status              RequestStatus         @default(PENDING)
   scheduledStartAt    DateTime?             @map("scheduled_start_at") @db.Timestamptz(3)
   scheduledEndAt      DateTime?             @map("scheduled_end_at") @db.Timestamptz(3)
@@ -487,6 +490,7 @@ model ServiceRequest {
   guestContact        GuestContact?         @relation(fields: [guestContactId], references: [id], onDelete: Restrict)
   sellerProfessional ProfessionalProfile?  @relation("ProfessionalRequestSeller", fields: [sellerProfessionalId], references: [id], onDelete: Restrict)
   sellerOrganization Organization?          @relation("OrganizationRequestSeller", fields: [sellerOrganizationId], references: [id], onDelete: Restrict)
+  performerProfessional ProfessionalProfile? @relation("ProfessionalRequestPerformer", fields: [performerProfessionalId], references: [id], onDelete: Restrict)
   cancellationSnapshot CancellationSnapshot?
   cancellationEvent   CancellationEvent?
   guestCapabilities GuestCapability[]
@@ -558,12 +562,14 @@ model BusyBlock {
   id             String               @id @default(uuid()) @db.Uuid
   professionalId String               @map("professional_id") @db.Uuid
   requestId      String?              @map("request_id") @db.Uuid
+  organizationId String?              @map("organization_id") @db.Uuid
   startAt        DateTime             @map("start_at") @db.Timestamptz(3)
   endAt          DateTime             @map("end_at") @db.Timestamptz(3)
   context        WorkContext
   privateReason  String?              @map("private_reason") @db.VarChar(64)
   professional   ProfessionalProfile  @relation(fields: [professionalId], references: [id], onDelete: Restrict)
   request        ServiceRequest?      @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  organization   Organization?        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   @@index([professionalId, startAt, endAt])
   @@map("busy_blocks")
 }
