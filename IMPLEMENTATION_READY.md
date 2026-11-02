@@ -89,3 +89,5 @@ Three **proposed** ADRs capture newly identified implementation gates:
 
 - [ADR-0010](docs/adr/0010-published-company-view.md): materialized public company professional view, revision fences and fail-closed disclosure on revoked permissions; eventual CDN purge alone is insufficient.
 - [CAN-T13](contracts/cancellation-deadline-algorithm.md): 15-minute grace after **both** request acceptance and confirmed time agreement, capped by service start; no penalty on mere proposed date.
+
+- [ADR-0011](docs/adr/0011-review-erasure-and-seller-identity.md): nullable review authors and anonymization after lawful erasure; retain seller XOR FK for MVP with centralized ACL policy, revisit SellerIdentity only if measurable benefits justify migration. Reference Prisma/SQL changed, but actual migration and erasure graph are **not implemented**.
