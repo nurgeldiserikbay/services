@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Services API — MVP design contract
-  version: 0.5.0
+  version: 0.5.1
   description: >
     Частичный проектный контракт API для простых заявок, публичного каталога и персональных закладок. На момент создания не означает,
     что эти маршруты реализованы. Все серверные операции дополнительно проверяют ACL.
@@ -483,7 +483,13 @@ paths:
     patch:
       tags: [Bookings]
       operationId: changeServiceRequestSchedule
-      summary: Продавец отмечает договорённое вне платформы время; уведомление клиенту обязательно
+      deprecated: true
+      summary: Legacy draft — продавец отмечает время; без подтверждения другой стороны штрафы запрещены
+      description: >
+        Deprecated design route. A seller-entered time is NOT a verified agreement and MUST NOT
+        activate automatic late customer penalties. Proposed replacement is ADR-0006
+        schedule-proposals with explicit recipient confirmation. Do not implement this
+        route as unilateral confirmed-schedule mutation.
       security:
         - sessionAuth: []
         - webSession: []
@@ -501,7 +507,7 @@ paths:
               $ref: '#/components/schemas/ScheduleUpdate'
       responses:
         '200':
-          description: Updated schedule and notification intent, previous deadline not silently reused
+          description: Legacy seller-entered schedule note only; no new penalizing deadline until customer confirmation (see ADR-0006)
           content:
             application/json:
               schema:
@@ -510,6 +516,145 @@ paths:
           $ref: '#/components/responses/Conflict'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /guest-requests/{id}/schedule-access/challenges:
+    post:
+      tags: [Bookings]
+      operationId: startGuestScheduleVerification
+      summary: Подтверждение исходного гостевого контакта для управления временем
+      description: Reverify the original contact tied to this request; READ_CANCEL only begins verification and does not permit schedule changes.
+      security:
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      responses:
+        '202':
+          description: Generic anti-enumeration response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestScheduleChallenge'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /guest-requests/{id}/schedule-access/challenges/{challengeId}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestScheduleChallenge
+      summary: Выдать ограниченное право управления временем после OTP
+      security:
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: challengeId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: {type: string, minLength: 4, maxLength: 12}
+      responses:
+        '200':
+          description: Request-bound MANAGE_SCHEDULE capability; no account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestScheduleGrant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /requests/{id}/schedule-proposals:
+    post:
+      tags: [Bookings]
+      operationId: proposeRequestSchedule
+      summary: Предложить время услуги; статус заявки остаётся ACCEPTED
+      description: >
+        ADR-0006 PROPOSED. Caller is customer or seller; guest caller needs MANAGE_SCHEDULE capability. Proposal is NOT
+        an agreement, cannot create a cancellation penalty or guaranteed busy slot.
+      security:
+        - sessionAuth: []
+        - webSession: []
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestVersion'
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleProposalCreate'
+      responses:
+        '201':
+          description: Proposed, recipient notified asynchronously
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleProposal'
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /requests/{id}/schedule-proposals/{proposalId}/confirm:
+    post:
+      tags: [Bookings]
+      operationId: confirmRequestScheduleProposal
+      summary: Вторая сторона подтверждает предложенное время
+      description: >
+        Only a non-initiating authorized actor may confirm a current proposal. Guest callers require MANAGE_SCHEDULE (not READ_CANCEL).
+        Check slot conflicts, CAS and cancellation snapshot in one transaction.
+      security:
+        - sessionAuth: []
+        - webSession: []
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/ScheduleProposalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestVersion'
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      responses:
+        '200':
+          description: Confirmed, current cancellation policy available to authorized users
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScheduleProposal'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /requests/{id}/schedule-proposals/{proposalId}/decline:
+    post:
+      tags: [Bookings]
+      operationId: declineRequestScheduleProposal
+      summary: Отклонить предложенное время без отмены самой заявки
+      description: Guest request participant requires request-scoped MANAGE_SCHEDULE capability; READ_CANCEL is insufficient.
+      security:
+        - sessionAuth: []
+        - webSession: []
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/ScheduleProposalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestVersion'
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      responses:
+        '200':
+          description: Proposal declined, request remains ACCEPTED
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScheduleProposal'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /me/requests:
     get:
       tags: [Bookings]
@@ -1350,10 +1495,31 @@ components:
       schema:
         type: string
         format: uuid
+    ScheduleProposalId:
+      in: path
+      name: proposalId
+      required: true
+      schema: {type: string, format: uuid}
+    RequestVersion:
+      in: header
+      name: If-Match
+      required: true
+      description: Current ServiceRequest version, quoted decimal integer
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+    GuestCapabilityHeader:
+      in: header
+      name: Guest-Capability
+      required: false
+      description: For schedule endpoints only MANAGE_SCHEDULE bound to the request; READ_CANCEL is insufficient
+      schema: {type: string, minLength: 24}
     IdempotencyKey:
       in: header
       name: Idempotency-Key
       required: true
+      description: >
+        Stable per logical mutation and principal. Reusing key with a different body returns 409.
       schema:
         type: string
         minLength: 8
@@ -1517,6 +1683,44 @@ components:
         scheduled_start_at: {type: [string, 'null'], format: date-time}
         scheduled_end_at: {type: [string, 'null'], format: date-time}
         version: {type: integer, minimum: 1}
+    GuestScheduleChallenge:
+      type: object
+      additionalProperties: false
+      required: [challenge_id]
+      properties:
+        challenge_id: {type: string, format: uuid}
+    GuestScheduleGrant:
+      type: object
+      additionalProperties: false
+      required: [capability, scope, expires_at]
+      properties:
+        capability: {type: string, minLength: 24}
+        scope: {type: string, const: manage_schedule}
+        expires_at: {type: string, format: date-time}
+    ScheduleProposalCreate:
+      type: object
+      additionalProperties: false
+      required: [start_at, end_at, timezone]
+      properties:
+        start_at: {type: string, format: date-time}
+        end_at: {type: string, format: date-time}
+        timezone: {type: string, minLength: 1, maxLength: 64}
+    ScheduleProposal:
+      type: object
+      additionalProperties: false
+      required: [id, request_id, revision, status, initiator, start_at, end_at, timezone, request_version]
+      properties:
+        id: {type: string, format: uuid}
+        request_id: {type: string, format: uuid}
+        revision: {type: integer, minimum: 1}
+        status: {type: string, enum: [proposed, confirmed, declined, superseded, closed]}
+        initiator: {type: string, enum: [customer, seller]}
+        start_at: {type: string, format: date-time}
+        end_at: {type: string, format: date-time}
+        timezone: {type: string}
+        request_version: {type: integer, minimum: 1}
+        confirmed_at: {type: [string, 'null'], format: date-time}
+        cancellation_deadline_at: {type: [string, 'null'], format: date-time}
     ScheduleUpdate:
       type: object
       required: [start_at, end_at, timezone]
@@ -1774,10 +1978,17 @@ components:
               enum: [submitted, published, under_review, hidden, removed]
     ApiError:
       type: object
+      additionalProperties: false
       required: [code, message, request_id]
       properties:
         code:
           type: string
+          description: Stable machine-readable error, not localized UI text.
+          examples: [REQUEST_STATE_CONFLICT, SLOT_CONFLICT, IDEMPOTENCY_PAYLOAD_MISMATCH, GUEST_CAPABILITY_EXPIRED, RESCHEDULE_REQUIRES_CONFIRMATION]
+        current_version:
+          type: [integer, 'null']
+          minimum: 1
+          description: Only supplied when requester is authorized to read the resource.
         message:
           type: string
         request_id:
@@ -1815,7 +2026,7 @@ components:
           schema:
             $ref: '#/components/schemas/ApiError'
     Conflict:
-      description: Duplicate or invalid concurrent transition
+      description: Concurrent transition, occupied slot, or mismatched idempotency payload. Never leak a private request's version to an unauthorized caller.
       content:
         application/json:
           schema:

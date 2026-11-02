@@ -62,5 +62,34 @@ for(const id of ['getCancellationPreview','getOfferCancellationPolicy','getMyCus
 for(const id of ['webSession','sessionAuth','guestCapability']){
  assert(api.components.securitySchemes?.[id],`Missing security scheme ${id}`);
 }
+
+const scheduleRoutes=[
+ ['/requests/{id}/schedule-proposals','post'],
+ ['/requests/{id}/schedule-proposals/{proposalId}/confirm','post'],
+ ['/requests/{id}/schedule-proposals/{proposalId}/decline','post'],
+];
+for(const [route,verb] of scheduleRoutes){
+ const operation=op(route,verb);
+ assert(hasSecurity(operation,'guestCapability')&&hasSecurity(operation,'sessionAuth')&&hasSecurity(operation,'webSession'),
+   `Schedule route must accept scoped guest or signed-in customer/seller: ${verb} ${route}`);
+ const parameters=(operation.parameters??[]).map(resolve);
+ for(const name of ['Idempotency-Key','If-Match']){
+   assert(parameters.some(p=>p.in==='header'&&p.name===name&&p.required===true),
+     `Schedule write requires ${name}: ${verb} ${route}`);
+ }
+}
+for(const route of [
+ '/guest-requests/{id}/schedule-access/challenges',
+ '/guest-requests/{id}/schedule-access/challenges/{challengeId}/verify'
+]){
+ const operation=op(route,'post');
+ assert(hasSecurity(operation,'guestCapability'),
+   `Guest schedule authorization required: ${route}`);
+}
+assert(api.components.schemas?.GuestScheduleGrant,'Missing guest schedule grant schema');
+assert(api.components.schemas?.GuestScheduleChallenge,'Missing guest schedule verification schema');
+assert(api.paths['/requests/{id}/schedule']?.patch?.deprecated===true,
+ 'Legacy unilateral schedule patch must remain deprecated');
+
 assert(operations>=45,`MVP API unexpectedly small (${operations})`);
 console.log(`Contract invariants passed: ${Object.keys(api.paths).length} paths, ${operations} methods, ${operationIds.size} unique operation IDs.`);

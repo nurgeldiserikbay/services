@@ -166,7 +166,7 @@ ALTER TABLE account_auth_challenges
 ALTER TABLE guest_capabilities
   ADD CONSTRAINT guest_capability_scope_request
   CHECK ((scope = 'CREATE_REQUEST' AND request_id IS NULL)
-     OR (scope = 'READ_CANCEL' AND request_id IS NOT NULL));
+     OR (scope IN ('READ_CANCEL','MANAGE_SCHEDULE') AND request_id IS NOT NULL));
 ALTER TABLE guest_capabilities
   ADD CONSTRAINT guest_capability_expiry
   CHECK (expires_at > created_at);
@@ -211,3 +211,66 @@ CREATE CONSTRAINT TRIGGER cancellation_two_intents
 --
 -- Migration plan: baseline Prisma migration -> this reviewed SQL -> backfill
 -- -> staging EXPLAIN/locks/rollback test -> migrate production under controlled window.
+
+
+-- 8. Reference-only idempotency ledger guards. These constraints apply after
+-- generating/reviewing the Prisma baseline migration containing idempotency_records.
+ALTER TABLE idempotency_records
+  ADD CONSTRAINT idempotency_record_state_valid
+  CHECK (state IN ('PROCESSING','COMPLETED','FAILED'));
+ALTER TABLE idempotency_records
+  ADD CONSTRAINT idempotency_record_expiry_valid
+  CHECK (expires_at > created_at);
+ALTER TABLE idempotency_records
+  ADD CONSTRAINT idempotency_record_response_complete
+  CHECK ((state = 'COMPLETED' AND response_status IS NOT NULL)
+      OR (state <> 'COMPLETED'));
+-- Database uniqueness on actor_scope/method/route/key is emitted from the
+-- Prisma @@unique. Never store session IDs, OTP, guest secrets or plain
+-- private contacts in actor_scope or response_body. Encrypt/redact responses.
+-- For crash-safe execution do not commit PROCESSING separately from the
+-- domain effect without a deterministic lease/recovery policy.
+
+-- 9. ADR-0006 design-only schedule proposal constraints.
+-- Review against the baseline migration before deploying.
+ALTER TABLE schedule_proposals
+  ADD CONSTRAINT schedule_proposal_period_valid
+  CHECK (proposed_end_at > proposed_start_at AND revision >= 1);
+ALTER TABLE schedule_proposals
+  ADD CONSTRAINT schedule_proposal_resolution_valid
+  CHECK (
+    (status = 'PROPOSED' AND resolved_at IS NULL AND resolved_by IS NULL)
+    OR (status <> 'PROPOSED' AND resolved_at IS NOT NULL)
+  );
+ALTER TABLE schedule_proposals
+  ADD CONSTRAINT schedule_proposal_opposite_confirmation
+  CHECK (status <> 'CONFIRMED' OR (resolved_by IS NOT NULL AND resolved_by <> initiator));
+CREATE UNIQUE INDEX schedule_proposal_one_active
+  ON schedule_proposals(request_id)
+  WHERE status = 'PROPOSED';
+-- SQL constraints above do not prove actor authorization, availability,
+-- valid IANA timezone, or agreed consent. Backend verifies all of those.
+-- ADR-0005 guest READ_CANCEL does NOT grant schedule confirmation:
+-- an additional scoped capability must be designed before exposing guest
+-- schedule-proposal endpoints in production.
+
+-- ADR-0006: validated schedule scope is bound to exactly one existing request.
+-- Domain auth MUST verify the guest's contact against request.guest_contact_id.
+ALTER TABLE cancellation_snapshot_revisions
+  ADD CONSTRAINT cancellation_snapshot_revision_valid
+  CHECK (schedule_revision > 0 AND policy_revision > 0
+    AND free_cancel_before_min BETWEEN 0 AND 10080
+    AND free_cancel_until <= scheduled_start_at);
+-- The unique (request_id, schedule_revision) is defined in Prisma.
+-- History must be append-only, including during concurrent reschedules.
+CREATE OR REPLACE FUNCTION prevent_cancellation_history_mutation() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Cancellation snapshot history is immutable' USING ERRCODE='23514';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER cancellation_snapshot_history_immutable
+  BEFORE UPDATE OR DELETE ON cancellation_snapshot_revisions
+  FOR EACH ROW EXECUTE FUNCTION prevent_cancellation_history_mutation();
+-- customer_penalty_suspended is a safety default during seller-initiated reschedule.
+-- Domain layer must set it transactionally BEFORE notifying client; clearing
+-- requires client confirmation of new agreement and checked current revision.

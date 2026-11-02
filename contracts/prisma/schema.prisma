@@ -22,6 +22,7 @@ enum AccountAuthPurpose {
 enum GuestCapabilityScope {
   CREATE_REQUEST
   READ_CANCEL
+  MANAGE_SCHEDULE
 }
 enum ConsentKind {
   TERMS
@@ -492,8 +493,11 @@ model ServiceRequest {
   sellerOrganization Organization?          @relation("OrganizationRequestSeller", fields: [sellerOrganizationId], references: [id], onDelete: Restrict)
   performerProfessional ProfessionalProfile? @relation("ProfessionalRequestPerformer", fields: [performerProfessionalId], references: [id], onDelete: Restrict)
   cancellationSnapshot CancellationSnapshot?
+  cancellationSnapshotHistory CancellationSnapshotRevision[]
+  customerPenaltySuspended Boolean @default(false) @map("customer_penalty_suspended")
   cancellationEvent   CancellationEvent?
   guestCapabilities GuestCapability[]
+  scheduleProposals   ScheduleProposal[]
   events              ServiceRequestEvent[]
   busyBlocks          BusyBlock[]
   reliabilityEvents   ReliabilityEvent[]
@@ -696,4 +700,84 @@ model SavedItem {
   @@unique([personId, targetKind, targetId])
   // Polymorphic target lookup enforced by application and background reconciliation.
   @@map("saved_items")
+}
+
+/**
+ * Durable HTTP mutation replay ledger (reference design, not deployed).
+ * actorScope is a keyed, pseudonymous principal identifier, never a raw token.
+ * The backend must normalize request route and body hash consistently.
+ * Concurrent creators must lock the unique actorScope + method + route + key.
+ */
+model IdempotencyRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  actorScope     String    @map("actor_scope") @db.VarChar(128)
+  method         String    @db.VarChar(12)
+  route          String    @db.VarChar(180)
+  key            String    @db.VarChar(128)
+  requestHash    String    @map("request_hash") @db.VarChar(128)
+  state          String    @default("PROCESSING") @db.VarChar(24)
+  responseStatus Int?      @map("response_status")
+  responseBody   Json?     @map("response_body")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
+  @@unique([actorScope, method, route, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+enum ScheduleProposalStatus {
+  PROPOSED
+  CONFIRMED
+  DECLINED
+  SUPERSEDED
+  CLOSED
+}
+enum ScheduleProposalActor {
+  CUSTOMER
+  SELLER
+}
+
+/**
+ * ADR-0006 PROPOSED. Each revision is immutable as to proposed time/initiator.
+ * One active proposal per request enforced by partial unique SQL index.
+ * Agreement is confirmed by the OPPOSITE actor; guest confirmation is verified
+ * against request-scoped capability at API, not stored in this table.
+ */
+model ScheduleProposal {
+  id              String                 @id @default(uuid()) @db.Uuid
+  requestId       String                 @map("request_id") @db.Uuid
+  revision        Int
+  status          ScheduleProposalStatus @default(PROPOSED)
+  initiator       ScheduleProposalActor
+  proposedStartAt DateTime               @map("proposed_start_at") @db.Timestamptz(3)
+  proposedEndAt   DateTime               @map("proposed_end_at") @db.Timestamptz(3)
+  timezone        String                 @db.VarChar(64)
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt      DateTime?              @map("resolved_at") @db.Timestamptz(3)
+  resolvedBy      ScheduleProposalActor? @map("resolved_by")
+  request         ServiceRequest         @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  @@unique([requestId, revision])
+  @@index([requestId, status, createdAt])
+  @@map("schedule_proposals")
+}
+
+/**
+ * Immutable historical snapshots for verified schedule agreements.
+ * The existing CancellationSnapshot remains a current projection only.
+ * Never overwrite or delete history; only append on a newly confirmed revision.
+ */
+model CancellationSnapshotRevision {
+  id                  String         @id @default(uuid()) @db.Uuid
+  requestId           String         @map("request_id") @db.Uuid
+  scheduleRevision    Int            @map("schedule_revision")
+  policyRevision      Int            @map("policy_revision")
+  scheduledStartAt    DateTime       @map("scheduled_start_at") @db.Timestamptz(3)
+  freeCancelBeforeMin Int            @map("free_cancel_before_min")
+  freeCancelUntil     DateTime       @map("free_cancel_until") @db.Timestamptz(3)
+  agreedAt            DateTime       @map("agreed_at") @db.Timestamptz(3)
+  timezone            String         @db.VarChar(64)
+  request             ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  @@unique([requestId, scheduleRevision])
+  @@index([requestId, agreedAt])
+  @@map("cancellation_snapshot_revisions")
 }
