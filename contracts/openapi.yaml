@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Services API — MVP design contract
-  version: 0.5.0
+  version: 0.5.1
   description: >
     Частичный проектный контракт API для простых заявок, публичного каталога и персональных закладок. На момент создания не означает,
     что эти маршруты реализованы. Все серверные операции дополнительно проверяют ACL.
@@ -1354,6 +1354,12 @@ components:
       in: header
       name: Idempotency-Key
       required: true
+      description: >
+        Stable per logical mutation and principal; replay with the same request body returns
+        the stored result without reapplying business effects. Reusing this key in the same
+        principal/method/route scope with another body yields 409.
+        A network timeout must retry with the SAME key. TTL and ledger cleanup follow
+        the implementation contract, not client assumptions.
       schema:
         type: string
         minLength: 8
@@ -1774,10 +1780,17 @@ components:
               enum: [submitted, published, under_review, hidden, removed]
     ApiError:
       type: object
+      additionalProperties: false
       required: [code, message, request_id]
       properties:
         code:
           type: string
+          description: Stable machine-readable error, not localized UI text.
+          examples: [REQUEST_STATE_CONFLICT, SLOT_CONFLICT, IDEMPOTENCY_PAYLOAD_MISMATCH, GUEST_CAPABILITY_EXPIRED, RESCHEDULE_REQUIRES_CONFIRMATION]
+        current_version:
+          type: [integer, 'null']
+          minimum: 1
+          description: Only supplied when requester is authorized to read the resource.
         message:
           type: string
         request_id:
@@ -1815,7 +1828,7 @@ components:
           schema:
             $ref: '#/components/schemas/ApiError'
     Conflict:
-      description: Duplicate or invalid concurrent transition
+      description: Concurrent transition, occupied slot, or mismatched idempotency payload. Never leak a private request's version to an unauthorized caller.
       content:
         application/json:
           schema:
