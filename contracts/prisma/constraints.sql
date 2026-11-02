@@ -211,3 +211,22 @@ CREATE CONSTRAINT TRIGGER cancellation_two_intents
 --
 -- Migration plan: baseline Prisma migration -> this reviewed SQL -> backfill
 -- -> staging EXPLAIN/locks/rollback test -> migrate production under controlled window.
+
+
+-- 8. Reference-only idempotency ledger guards. These constraints apply after
+-- generating/reviewing the Prisma baseline migration containing idempotency_records.
+ALTER TABLE idempotency_records
+  ADD CONSTRAINT idempotency_record_state_valid
+  CHECK (state IN ('PROCESSING','COMPLETED','FAILED'));
+ALTER TABLE idempotency_records
+  ADD CONSTRAINT idempotency_record_expiry_valid
+  CHECK (expires_at > created_at);
+ALTER TABLE idempotency_records
+  ADD CONSTRAINT idempotency_record_response_complete
+  CHECK ((state = 'COMPLETED' AND response_status IS NOT NULL)
+      OR (state <> 'COMPLETED'));
+-- Database uniqueness on actor_scope/method/route/key is emitted from the
+-- Prisma @@unique. Never store session IDs, OTP, guest secrets or plain
+-- private contacts in actor_scope or response_body. Encrypt/redact responses.
+-- For crash-safe execution do not commit PROCESSING separately from the
+-- domain effect without a deterministic lease/recovery policy.
