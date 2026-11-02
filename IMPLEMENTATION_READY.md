@@ -77,3 +77,19 @@ OpenAPI now describes `POST /guest-requests/{id}/schedule-access/challenges` and
 ## Final handoff decision (2026-11-02)
 
 [Final handoff and scope freeze](docs/architecture/final-handoff.md) records the accepted MVP business rules and identifies remaining **implementation/verification gates**. Do not interpret content-complete as a successful PostgreSQL migration, live authorization implementation or production release. ADR-0006 is accepted. Use this handoff as the entry point for backend/frontend/admin development tasks and attach CI run evidence before marking contracts validated.
+
+## Security and lifecycle review addendum (2026-11-03)
+
+Three **proposed** ADRs capture newly identified implementation gates:
+- [ADR-0007](docs/adr/0007-affiliation-active-requests.md): deactivate public company view immediately, but prevent operational affiliation closure while assigned corporate requests remain pending or accepted; require customer consent to a replacement performer. Count active requests regardless of scheduled time.
+- [ADR-0008](docs/adr/0008-guest-abuse-and-recovery.md): guest OTP spend/rate limits, risk-adaptive CAPTCHA, no unverified pending requests, request-scoped HttpOnly web session and OTP recovery without secret-bearing links.
+- [ADR-0009](docs/adr/0009-kz-data-residency-and-telemetry.md): Kazakhstan pilot PII residency, telemetry redaction, processor/region inventory, test/prod isolation and legal review of cross-border transfers.
+
+**Important:** these are new security and lifecycle design reviews, not code already implemented or legal approval. Their runtime enforcement and migration tests belong to the implementation phase. Do not mark contract-validated without CI and DB evidence.
+
+- [ADR-0010](docs/adr/0010-published-company-view.md): materialized public company professional view, revision fences and fail-closed disclosure on revoked permissions; eventual CDN purge alone is insufficient.
+- [CAN-T13](contracts/cancellation-deadline-algorithm.md): 15-minute grace after **both** request acceptance and confirmed time agreement, capped by service start; no penalty on mere proposed date.
+
+- [ADR-0011](docs/adr/0011-review-erasure-and-seller-identity.md): nullable review authors and anonymization after lawful erasure; retain seller XOR FK for MVP with centralized ACL policy, revisit SellerIdentity only if measurable benefits justify migration. Reference Prisma/SQL changed, but actual migration and erasure graph are **not implemented**.
+
+- [ADR-0012](docs/adr/0012-timezone-noshow-guest-links.md): common platform-wide rules for timezone/TZDB changes, no-show adjudication workflow, and guest web/native deep-link boundaries. **Scope is full product architecture, not an MVP shortcut**; implementation evidence and cross-platform tests are still required.

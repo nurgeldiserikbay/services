@@ -274,3 +274,12 @@ CREATE TRIGGER cancellation_snapshot_history_immutable
 -- customer_penalty_suspended is a safety default during seller-initiated reschedule.
 -- Domain layer must set it transactionally BEFORE notifying client; clearing
 -- requires client confirmation of new agreement and checked current revision.
+
+-- ADR-0011: once a review's author is detached, erase public free-text and
+-- record anonymization. This is NOT the whole Person-erasure procedure.
+ALTER TABLE reviews
+  ADD CONSTRAINT review_anonymized_author_consistency
+  CHECK (author_person_id IS NOT NULL OR
+    (anonymized_at IS NOT NULL AND comment IS NULL));
+-- A production migration needs a backfill/review of old rows and retention
+-- rules before changing the FK from RESTRICT to SET NULL.

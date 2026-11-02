@@ -56,3 +56,25 @@ All times in one timezone on an illustrative date; server calculations use UTC i
 ## Security and finality
 
 A client cannot edit policy, clock or agreed start from request payload. Seller also cannot unilaterally claim a confirmed agreement. A timeout/retry uses the same idempotency key. No-show or exception appeals remain separate from automatic deadline evaluation.
+
+## CAN-T13 — late acceptance grace (explicit acceptance test)
+
+When the customer has **confirmed** a 12:00 appointment with a seller policy requiring cancellation 120 minutes before start, the nominal cutoff is 10:00. If the seller accepts the request at 11:30, the effective grace deadline is **11:45** (15 minutes after acceptance, capped by appointment start). A cancellation at 11:44 or 11:45 is free of automatic customer-reliability penalty; 11:46 is potentially late **only** if all other eligibility conditions hold.
+
+**Critical ADR-0006 condition:** seller acceptance of the *request* is not proof of agreed time. If 12:00 was only the customer's proposed time and the other party has not confirmed it, there is **no late penalty**, regardless of the nominal cutoff or 15-minute formula. Compute effective `freeCancelUntil` when a confirmed agreement and accepted request both exist; capture the later of acceptance time and agreement confirmation as the start of the minimum 15-minute opportunity, without letting the resulting deadline extend beyond service start. A material unilateral schedule change suspends penalty eligibility until the other party confirms it.
+
+Reference pseudocode for this rule:
+```text
+if request.status != ACCEPTED or agreement.status != CONFIRMED:
+    effectiveDeadline = null
+else:
+    B = scheduledStartAt - freeCancelBeforeMin minutes
+    consentReadyAt = max(request.acceptedAt, agreement.confirmedAt)
+    if consentReadyAt >= scheduledStartAt:
+        effectiveDeadline = null  # no automatic late penalty
+    else if consentReadyAt > B:
+        effectiveDeadline = min(scheduledStartAt, consentReadyAt + 15 minutes)
+    else:
+        effectiveDeadline = B
+```
+This clarification supersedes the earlier formula **only where agreement confirmation occurs after acceptance**. Snapshot models must record agreement confirmation time separately or derive it immutably from the confirmed ScheduleProposal revision. DB constraints must verify `freeCancelUntil` equals the chosen algorithm result in transactional integration tests; a column CHECK alone cannot prove that formula.
