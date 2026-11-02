@@ -669,16 +669,18 @@ model ServiceExperience {
 model Review {
   id               String            @id @default(uuid()) @db.Uuid
   experienceId     String            @map("experience_id") @db.Uuid
-  authorPersonId   String            @map("author_person_id") @db.Uuid
+  authorPersonId   String?           @map("author_person_id") @db.Uuid
   professionalId   String?           @map("professional_id") @db.Uuid
   organizationId   String?           @map("organization_id") @db.Uuid
   locationId       String?           @map("location_id") @db.Uuid
   rating           Int
   comment          String?           @db.VarChar(3000)
+  verifiedExperienceSnapshot Boolean @default(false) @map("verified_experience_snapshot")
+  anonymizedAt     DateTime?         @map("anonymized_at") @db.Timestamptz(3)
   status           ReviewStatus      @default(SUBMITTED)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   experience       ServiceExperience @relation(fields: [experienceId], references: [id], onDelete: Restrict)
-  author           Person            @relation(fields: [authorPersonId], references: [id], onDelete: Restrict)
+  author           Person?           @relation(fields: [authorPersonId], references: [id], onDelete: SetNull)
   professional     ProfessionalProfile? @relation("ProfessionalReview", fields: [professionalId], references: [id], onDelete: Restrict)
   organization     Organization?     @relation("OrganizationReview", fields: [organizationId], references: [id], onDelete: Restrict)
   location         Location?         @relation("LocationReview", fields: [locationId], references: [id], onDelete: Restrict)
