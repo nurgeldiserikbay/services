@@ -19,12 +19,12 @@
 | Нет заявки | Создание гостем/клиентом | `PENDING` | Offer активен, канал заявок разрешён, anti-spam и auth/guest capability |
 | `PENDING` | Принять продавцом | `ACCEPTED` | Seller ACL, один победивший переход; согласованность слота |
 | `PENDING` | Отклонить продавцом | `DECLINED` | Seller ACL, причина необязательна |
-| `PENDING` | Отозвать клиентом | `CANCELLED` | Автор или scoped guest capability; без штрафа |
-| `ACCEPTED` | Отменить любой стороной | `CANCELLED` | Проверка actor и snapshot; два notification intent |
+| `PENDING` | Отозвать клиентом | `CANCELLED_BY_CUSTOMER` | Автор или scoped guest capability; без штрафа |
+| `ACCEPTED` | Отменить клиентом / продавцом / по согласованию | Соответствующий `CANCELLED_*` | Проверка actor и snapshot; два notification intent |
 | `ACCEPTED` | Подтверждённое оказание | `COMPLETED` | Только поддерживаемое действие, без придумывания auto-complete по таймеру |
 | Финальное состояние | Повторить переход | Без новых эффектов | Вернуть текущий ресурс или конфликт 409 |
 
-`DECLINED`, `CANCELLED`, `COMPLETED` — терминальные для базового MVP. Повторное обращение создаётся отдельно. Изменения времени после принятия — отдельный согласованный процесс, нельзя молча перезаписать snapshot и задним числом наказать клиента.
+`DECLINED`, три `CANCELLED_*`, `COMPLETED` и `EXPIRED` — терминальные для базового MVP. Повторное обращение создаётся отдельно. Изменения времени после принятия — отдельный согласованный процесс, нельзя молча перезаписать snapshot и задним числом наказать клиента.
 
 ## 3. Как принимать заявку при конкуренции
 
@@ -100,6 +100,24 @@ UI блокирует повторную кнопку на время мутац
 
 ## 9. Вопросы для уточнения непосредственно перед backend implementation
 
-Нужны явные решения и синхронизация с OpenAPI/Prisma по: точным status enum и переходу `COMPLETED`; времени жизни/хранения idempotency records; способу реального SQL exclusion constraint на busy ranges; согласованию слота при заявке без расписания; событию изменения времени и обновлённому snapshot; правилам хранения и анонимизации уведомлений; machine-readable error codes и механизмам reconciliation.
+Существующий Prisma enum уже включает `PENDING`, `ACCEPTED`, `DECLINED`, три `CANCELLED_*`, `COMPLETED`, `EXPIRED`; OpenAPI и frontend обязаны использовать эти значения без общей фиктивной записи `CANCELLED`. Остаются решения по переходам `COMPLETED`/`EXPIRED`; времени жизни/хранения idempotency records; способу реального SQL exclusion constraint на busy ranges; согласованию слота при заявке без расписания; событию изменения времени и обновлённому snapshot; правилам хранения и анонимизации уведомлений; machine-readable error codes и механизмам reconciliation.
 
 **Граница готовности:** этот текст задаёт ожидаемые инварианты и негативные сценарии, но не заменяет конкретные миграции PostgreSQL, OpenAPI operation bodies, реальные интеграционные тесты, legal sign-off и UX review.
+
+
+## 10. Сверка с текущими контрактами (2026-11-02)
+
+| Аспект | Уже есть в design reference | Необходимо до backend implementation |
+| --- | --- | --- |
+| Статусы | Prisma `RequestStatus` перечисляет 8 состояний, включая 3 причины отмены и `EXPIRED` | Полная state-transition матрица, одинаковые строки в API/клиенте |
+| Конкуренция | `ServiceRequest.version` Int, route `If-Match` для cancel | Определить обязательность version для accept/decline, atomic CAS, статус 409 |
+| Идемпотентность | OpenAPI параметр `Idempotency-Key` | Durable storage для результата операции, уникальность scope и body hash, TTL, retry |
+| Занятость | `BusyBlock` с `professionalId`, `requestId`, `context` | Подтвердить exclusion constraint, lifecycle busy block, soft hold отсутствует |
+| Отмена | `CancellationEvent.requestId @unique`, SQL deferred trigger на два intent | Negative/concurrent tests; cancellation snapshot обязателен только там, где политика применима |
+| Уведомления | `DomainOutboxEvent`, `NotificationIntent`, доставка отдельно | Очередь/reconciliation, безопасный повтор, retention |
+| Гость | `GuestCapabilityScope.CREATE_REQUEST/READ_CANCEL` | Тестировать смену scope, expiry, request binding |
+| Согласование даты | `scheduledStartAt` / `scheduledEndAt` nullable | Отдельный UI/API механизм подтверждения времени клиентом; нельзя считать пожелание согласием |
+
+**Точечные расхождения:** эта глава первоначально употребляла агрегатный `CANCELLED` — теперь обозначены реальные статусы. `CancellationPolicySnapshot` — бизнес-термин ADR; в схеме Prisma фактическая модель называется `CancellationSnapshot`. Реализация должна использовать актуальное имя модели и согласовать поля с ADR. Не добавлять второй класс только из-за названия.
+
+**Порядок внедрения:** (1) согласовать точный transport state enum; (2) зафиксировать reschedule/confirm-time протокол; (3) записать durable idempotency contract и миграцию; (4) реализовать SQL блокировку слотов и concurrency integration tests; (5) расширить OpenAPI ошибками и conditional writes; (6) синхронизировать SDK, frontend и QA. Все изменения — reviewable migrations, без предположения о существующем production deployment.
