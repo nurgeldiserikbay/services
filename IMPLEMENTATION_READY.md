@@ -61,3 +61,7 @@ Complete the guest schedule OTP challenge/verify OpenAPI schemas, formally revie
 ## Update — 2026-11-02, guest schedule API draft
 
 OpenAPI now describes `POST /guest-requests/{id}/schedule-access/challenges` and `POST /guest-requests/{id}/schedule-access/challenges/{challengeId}/verify`, returning a request-specific `MANAGE_SCHEDULE` capability. This addresses the **missing API description**, not the implementation or validation gate. The existing challenge ID is not itself authorization, and guest access must not be promoted to an account session. No proof of OpenAPI bundling, generated client compatibility, OTP transport, PostgreSQL tests or security verification is recorded yet.
+
+## Параллельная реализация — план работ
+
+Добавлен [план параллельной реализации](docs/architecture/parallel-implementation-plan.md) с идентификаторами DOC-01..02, BE-01..06, WEB-01..03, ADM-01, OPS-01 и QA-01, зависимостями и вертикальными сценариями. **Это разбивка задач, а не выполненная реализация.** Для каждого этапа обязательно фиксировать результаты CI и security review.
