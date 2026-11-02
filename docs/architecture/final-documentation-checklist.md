@@ -47,3 +47,13 @@
 
 ### Stop conditions
 Do not mark documentation ready while a YAML/Prisma parsing error remains, ADR-0006 is not decided, guest capability can authorize a different request, or the current cancellation deadline may be silently changed without confirmed agreement. Never confuse an unchecked box with a failed test: it means evidence has not been attached.
+
+## Кто выполняет оставшиеся действия
+
+**Автоматически в GitHub Actions (без участия владельца):** `.github/workflows/contracts.yml` уже содержит Prisma validate, Redocly bundle, API contract checker, одноразовый PostgreSQL 16, SQL constraints и smoke.sql. В этот PR добавлен запуск workflow при изменении скрипта проверки API. Результат считается подтверждённым только после зелёного workflow run на конкретном коммите.
+
+**Разработчик / ИИ-агент:** устранить ошибки CI, проверить и зафиксировать соответствие схем, расширить тесты на гонки, обновить и пересобрать документацию, вынести PR на ревью. От пользователя не требуются ручные команды npm, psql или Prisma.
+
+**Владелец продукта:** утвердить или отклонить ADR-0006 (двустороннее согласование времени для штрафа за позднюю отмену). Перед запуском также потребуется выбрать пилотный рынок и подтвердить применимые условия/политику; юридические заключения и настройки внешних поставщиков не могут быть выдуманы.
+
+**Не путать с результатом:** наличие шагов в workflow не доказывает, что они сейчас успешно проходят. Внешнее ревью и реальные устройства также не проверяются одной GitHub Action.
