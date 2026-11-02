@@ -91,3 +91,5 @@ Three **proposed** ADRs capture newly identified implementation gates:
 - [CAN-T13](contracts/cancellation-deadline-algorithm.md): 15-minute grace after **both** request acceptance and confirmed time agreement, capped by service start; no penalty on mere proposed date.
 
 - [ADR-0011](docs/adr/0011-review-erasure-and-seller-identity.md): nullable review authors and anonymization after lawful erasure; retain seller XOR FK for MVP with centralized ACL policy, revisit SellerIdentity only if measurable benefits justify migration. Reference Prisma/SQL changed, but actual migration and erasure graph are **not implemented**.
+
+- [ADR-0012](docs/adr/0012-timezone-noshow-guest-links.md): common platform-wide rules for timezone/TZDB changes, no-show adjudication workflow, and guest web/native deep-link boundaries. **Scope is full product architecture, not an MVP shortcut**; implementation evidence and cross-platform tests are still required.
