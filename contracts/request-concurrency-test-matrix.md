@@ -29,3 +29,21 @@ Status: DESIGN TEST CONTRACT, not executed. Follow ADR-0003/0004/0005 and [reque
 - Check after errors and process restart; no hidden additional cancellation/notification effects.
 - The idempotency record design in schema.prisma is reference-only. Confirm encrypted/redacted stored response and retention requirements before production.
 - Exact reschedule agreement UX/API remains an open technical contract, not inferred from existing PATCH schedule.
+
+
+## Schedule agreement scenarios (ADR-0006 proposed)
+
+| ID | Case | Expected |
+| --- | --- | --- |
+| SCH-01 | Client provides desired time and seller accepts | Request ACCEPTED, schedule not confirmed, no automatic customer late penalty |
+| SCH-02 | Seller proposes a new date | PROPOSED revision, outbox notice, no confirmed snapshot change |
+| SCH-03 | Authorized recipient confirms proposed date | Schedule CONFIRMED, policy snapshot and applicable busy block atomically committed |
+| SCH-04 | Two actors confirm and cancel concurrently | One serialized result; no orphan busy, snapshot or intent |
+| SCH-05 | Proposal superseded before clicking confirm | Old revision rejected with 409; user sees latest |
+| SCH-06 | Seller proposes substantial new time and customer declines | New time not activated; customer not penalized under proposed new deadline |
+| SCH-07 | Customer proposes time | Seller must confirm, not automatic acceptance |
+| SCH-08 | Guest confirm with expired/wrong-scope capability | 403/404 or 410 without leaking request |
+| SCH-09 | DST invalid/fold local time | Server rejects invalid or ambiguous input |
+| SCH-10 | Seller direct WhatsApp only; never confirms time on platform | No verified schedule and no automated late penalty |
+
+**Status:** tests are specified, not implemented. Existing PATCH schedule must not silently establish a penalizing agreement until ADR-0006 review is complete.
