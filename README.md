@@ -141,3 +141,5 @@ git add docs/ru index.html scripts/build-site.mjs
 - [Алгоритм срока отмены](contracts/cancellation-deadline-algorithm.md), [история и гостевой доступ](contracts/guest-schedule-snapshot-contract.md).
 
 **Важно:** новые схемы и OpenAPI проектные, не развернуты. PR может требовать проверок; отсутствие выполненного CI не означает успешной валидации.
+
+- [План параллельной реализации](docs/architecture/parallel-implementation-plan.md) — задачи по четырём репозиториям, зависимости, вертикальные сценарии и Definition of Done.
