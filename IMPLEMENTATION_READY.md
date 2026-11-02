@@ -86,3 +86,6 @@ Three **proposed** ADRs capture newly identified implementation gates:
 - [ADR-0009](docs/adr/0009-kz-data-residency-and-telemetry.md): Kazakhstan pilot PII residency, telemetry redaction, processor/region inventory, test/prod isolation and legal review of cross-border transfers.
 
 **Important:** these are new security and lifecycle design reviews, not code already implemented or legal approval. Their runtime enforcement and migration tests belong to the implementation phase. Do not mark contract-validated without CI and DB evidence.
+
+- [ADR-0010](docs/adr/0010-published-company-view.md): materialized public company professional view, revision fences and fail-closed disclosure on revoked permissions; eventual CDN purge alone is insufficient.
+- [CAN-T13](contracts/cancellation-deadline-algorithm.md): 15-minute grace after **both** request acceptance and confirmed time agreement, capped by service start; no penalty on mere proposed date.
