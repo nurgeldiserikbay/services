@@ -1505,15 +1505,21 @@ components:
       name: If-Match
       required: true
       description: Current ServiceRequest version, quoted decimal integer
-      schema: {type: string, pattern: '^"[1-9][0-9]*"      in: header
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+    GuestCapabilityHeader:
+      in: header
+      name: Guest-Capability
+      required: false
+      description: For schedule endpoints only MANAGE_SCHEDULE bound to the request; READ_CANCEL is insufficient
+      schema: {type: string, minLength: 24}
+    IdempotencyKey:
+      in: header
       name: Idempotency-Key
       required: true
       description: >
-        Stable per logical mutation and principal; replay with the same request body returns
-        the stored result without reapplying business effects. Reusing this key in the same
-        principal/method/route scope with another body yields 409.
-        A network timeout must retry with the SAME key. TTL and ledger cleanup follow
-        the implementation contract, not client assumptions.
+        Stable per logical mutation and principal. Reusing key with a different body returns 409.
       schema:
         type: string
         minLength: 8
