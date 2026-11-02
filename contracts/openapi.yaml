@@ -516,6 +516,63 @@ paths:
           $ref: '#/components/responses/Conflict'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /guest-requests/{id}/schedule-access/challenges:
+    post:
+      tags: [Bookings]
+      operationId: startGuestScheduleVerification
+      summary: Подтверждение исходного гостевого контакта для управления временем
+      description: Reverify the original contact tied to this request; READ_CANCEL only begins verification and does not permit schedule changes.
+      security:
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      responses:
+        '202':
+          description: Generic anti-enumeration response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestScheduleChallenge'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /guest-requests/{id}/schedule-access/challenges/{challengeId}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestScheduleChallenge
+      summary: Выдать ограниченное право управления временем после OTP
+      security:
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - name: challengeId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - $ref: '#/components/parameters/GuestCapabilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: {type: string, minLength: 4, maxLength: 12}
+      responses:
+        '200':
+          description: Request-bound MANAGE_SCHEDULE capability; no account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestScheduleGrant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /requests/{id}/schedule-proposals:
     post:
       tags: [Bookings]
@@ -1620,6 +1677,20 @@ components:
         scheduled_start_at: {type: [string, 'null'], format: date-time}
         scheduled_end_at: {type: [string, 'null'], format: date-time}
         version: {type: integer, minimum: 1}
+    GuestScheduleChallenge:
+      type: object
+      additionalProperties: false
+      required: [challenge_id]
+      properties:
+        challenge_id: {type: string, format: uuid}
+    GuestScheduleGrant:
+      type: object
+      additionalProperties: false
+      required: [capability, scope, expires_at]
+      properties:
+        capability: {type: string, minLength: 24}
+        scope: {type: string, const: manage_schedule}
+        expires_at: {type: string, format: date-time}
     ScheduleProposalCreate:
       type: object
       additionalProperties: false
