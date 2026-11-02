@@ -522,7 +522,7 @@ paths:
       operationId: proposeRequestSchedule
       summary: Предложить время услуги; статус заявки остаётся ACCEPTED
       description: >
-        ADR-0006 PROPOSED. Caller is customer or seller. Proposal is NOT
+        ADR-0006 PROPOSED. Caller is customer or seller; guest caller needs MANAGE_SCHEDULE capability. Proposal is NOT
         an agreement, cannot create a cancellation penalty or guaranteed busy slot.
       security:
         - sessionAuth: []
@@ -554,7 +554,7 @@ paths:
       operationId: confirmRequestScheduleProposal
       summary: Вторая сторона подтверждает предложенное время
       description: >
-        Only a non-initiating authorized actor may confirm a current proposal.
+        Only a non-initiating authorized actor may confirm a current proposal. Guest callers require MANAGE_SCHEDULE (not READ_CANCEL).
         Check slot conflicts, CAS and cancellation snapshot in one transaction.
       security:
         - sessionAuth: []
@@ -579,6 +579,7 @@ paths:
       tags: [Bookings]
       operationId: declineRequestScheduleProposal
       summary: Отклонить предложенное время без отмены самой заявки
+      description: Guest request participant requires request-scoped MANAGE_SCHEDULE capability; READ_CANCEL is insufficient.
       security:
         - sessionAuth: []
         - webSession: []
@@ -1964,7 +1965,7 @@ components:
       in: header
       name: Guest-Capability
       required: false
-      description: Verified scoped capability bound to this request, never public
+      description: For schedule endpoints only MANAGE_SCHEDULE scoped capability bound to this request; READ_CANCEL is insufficient. Never public.
       schema: {type: string, minLength: 24}
     IdempotencyKey:
       in: header
