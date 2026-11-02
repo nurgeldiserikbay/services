@@ -69,3 +69,7 @@ OpenAPI now describes `POST /guest-requests/{id}/schedule-access/challenges` and
 ## Статический аудит контракта
 
 См. [аудит от 2026-11-02](docs/architecture/contract-audit-2026-11-02.md): подтверждены описания гостевых schedule API, расширен `scripts/check-api-contract.mjs`. **Реальные validator/CI/DB test результаты пока не зарегистрированы.**
+
+## Финальный список проверки документов
+
+[Final documentation checklist](docs/architecture/final-documentation-checklist.md) — проверяемые условия по OpenAPI, Prisma/SQL, бизнес-правилам, UX/локализации, HTML и передаче в разработку. В таблице evidence нельзя ставить PASS без ссылки на реальный запуск и SHA.
