@@ -14,7 +14,7 @@ Canonical decisions: `docs/ru/01-product.md`, ADR-0001..0005. ADR-0006 remains *
 | --- | --- | --- | --- |
 | Domain decisions / simple requests | DESIGNED | ADR-0003/0004, state chapters | Reconcile old Booking/Inquiry language in remaining chapters |
 | Schedule agreement | PROPOSED | ADR-0006, ScheduleProposal and API drafts | Review user flow and approve or revise ADR-0006 |
-| Guest auth / schedule OTP | INCOMPLETE | ADR-0005 addendum, MANAGE_SCHEDULE Prisma enum | Add guest schedule challenge/verify routes to OpenAPI, auth and negative tests |
+| Guest auth / schedule OTP | INCOMPLETE | ADR-0005 addendum, MANAGE_SCHEDULE Prisma enum | Review new guest schedule challenge/verify OpenAPI routes; implement auth and negative tests |
 | Cancellation history | DESIGN ONLY | CancellationSnapshotRevision, algorithm document | Tie evaluated revision to cancellation audit and test transactions |
 | Request/idempotency | DESIGN ONLY | IdempotencyRecord, HTTP descriptions, test matrix | Specify retention/response redaction/crash recovery, migration and parallel DB tests |
 | Prisma / PostgreSQL | UNVERIFIED | Reference Prisma schema and constraints.sql | Run format/validate; generate migrations; verify SQL on real PostgreSQL |
@@ -28,7 +28,7 @@ Canonical decisions: `docs/ru/01-product.md`, ADR-0001..0005. ADR-0006 remains *
 
 ### P0 — close before implementation of booking/schedule domain
 1. Resolve explicit two-party scheduling semantics. Confirmed time must have demonstrated mutual assent; `desired_start_at`, a seller-only PATCH or unverified telephone note never authorizes automatic customer penalty.
-2. Add secure guest OTP issuance endpoints for `MANAGE_SCHEDULE` to OpenAPI. A guest `READ_CANCEL` token cannot confirm time.
+2. The proposed guest OTP routes for `MANAGE_SCHEDULE` are now in OpenAPI. Implement issuance/verification securely and test negative flows; `READ_CANCEL` still cannot confirm time.
 3. Make cancellation deadline evaluation auditable, including rule revision, algorithm version, effective deadline, verified agreement and penalty suspension on seller-reschedule.
 4. Specify atomic idempotency ledger lifetime and safe crash recovery; commit cancellation + release busy + event + **two logical notification intents** in one transaction.
 5. Validate actual Prisma/SQL/OpenAPI syntax and implement negative integration tests, including two concurrent acceptances, reschedule vs cancel and guest ACL.
@@ -57,3 +57,7 @@ For every gate, record:
 ## Next recommended bounded work item
 
 Complete the guest schedule OTP challenge/verify OpenAPI schemas, formally review ADR-0006, then implement and validate transactional Prisma/SQL migrations in the backend repository. The documentation PR can be merged only after reviewing consistency and CI; do not claim it is fully implementation-ready solely because this file exists.
+
+## Update — 2026-11-02, guest schedule API draft
+
+OpenAPI now describes `POST /guest-requests/{id}/schedule-access/challenges` and `POST /guest-requests/{id}/schedule-access/challenges/{challengeId}/verify`, returning a request-specific `MANAGE_SCHEDULE` capability. This addresses the **missing API description**, not the implementation or validation gate. The existing challenge ID is not itself authorization, and guest access must not be promoted to an account session. No proof of OpenAPI bundling, generated client compatibility, OTP transport, PostgreSQL tests or security verification is recorded yet.
