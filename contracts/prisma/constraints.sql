@@ -230,3 +230,26 @@ ALTER TABLE idempotency_records
 -- private contacts in actor_scope or response_body. Encrypt/redact responses.
 -- For crash-safe execution do not commit PROCESSING separately from the
 -- domain effect without a deterministic lease/recovery policy.
+
+-- 9. ADR-0006 design-only schedule proposal constraints.
+-- Review against the baseline migration before deploying.
+ALTER TABLE schedule_proposals
+  ADD CONSTRAINT schedule_proposal_period_valid
+  CHECK (proposed_end_at > proposed_start_at AND revision >= 1);
+ALTER TABLE schedule_proposals
+  ADD CONSTRAINT schedule_proposal_resolution_valid
+  CHECK (
+    (status = 'PROPOSED' AND resolved_at IS NULL AND resolved_by IS NULL)
+    OR (status <> 'PROPOSED' AND resolved_at IS NOT NULL)
+  );
+ALTER TABLE schedule_proposals
+  ADD CONSTRAINT schedule_proposal_opposite_confirmation
+  CHECK (status <> 'CONFIRMED' OR (resolved_by IS NOT NULL AND resolved_by <> initiator));
+CREATE UNIQUE INDEX schedule_proposal_one_active
+  ON schedule_proposals(request_id)
+  WHERE status = 'PROPOSED';
+-- SQL constraints above do not prove actor authorization, availability,
+-- valid IANA timezone, or agreed consent. Backend verifies all of those.
+-- ADR-0005 guest READ_CANCEL does NOT grant schedule confirmation:
+-- an additional scoped capability must be designed before exposing guest
+-- schedule-proposal endpoints in production.
