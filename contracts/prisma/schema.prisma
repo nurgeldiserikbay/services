@@ -697,3 +697,26 @@ model SavedItem {
   // Polymorphic target lookup enforced by application and background reconciliation.
   @@map("saved_items")
 }
+
+/**
+ * Durable HTTP mutation replay ledger (reference design, not deployed).
+ * actorScope is a keyed, pseudonymous principal identifier, never a raw token.
+ * The backend must normalize request route and body hash consistently.
+ * Concurrent creators must lock the unique actorScope + method + route + key.
+ */
+model IdempotencyRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  actorScope     String    @map("actor_scope") @db.VarChar(128)
+  method         String    @db.VarChar(12)
+  route          String    @db.VarChar(180)
+  key            String    @db.VarChar(128)
+  requestHash    String    @map("request_hash") @db.VarChar(128)
+  state          String    @default("PROCESSING") @db.VarChar(24)
+  responseStatus Int?      @map("response_status")
+  responseBody   Json?     @map("response_body")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
+  @@unique([actorScope, method, route, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
