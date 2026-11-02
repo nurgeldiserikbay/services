@@ -166,7 +166,7 @@ ALTER TABLE account_auth_challenges
 ALTER TABLE guest_capabilities
   ADD CONSTRAINT guest_capability_scope_request
   CHECK ((scope = 'CREATE_REQUEST' AND request_id IS NULL)
-     OR (scope = 'READ_CANCEL' AND request_id IS NOT NULL));
+     OR (scope IN ('READ_CANCEL','MANAGE_SCHEDULE') AND request_id IS NOT NULL));
 ALTER TABLE guest_capabilities
   ADD CONSTRAINT guest_capability_expiry
   CHECK (expires_at > created_at);
@@ -253,3 +253,24 @@ CREATE UNIQUE INDEX schedule_proposal_one_active
 -- ADR-0005 guest READ_CANCEL does NOT grant schedule confirmation:
 -- an additional scoped capability must be designed before exposing guest
 -- schedule-proposal endpoints in production.
+
+-- ADR-0006: validated schedule scope is bound to exactly one existing request.
+-- Domain auth MUST verify the guest's contact against request.guest_contact_id.
+ALTER TABLE cancellation_snapshot_revisions
+  ADD CONSTRAINT cancellation_snapshot_revision_valid
+  CHECK (schedule_revision > 0 AND policy_revision > 0
+    AND free_cancel_before_min BETWEEN 0 AND 10080
+    AND free_cancel_until <= scheduled_start_at);
+-- The unique (request_id, schedule_revision) is defined in Prisma.
+-- History must be append-only, including during concurrent reschedules.
+CREATE OR REPLACE FUNCTION prevent_cancellation_history_mutation() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Cancellation snapshot history is immutable' USING ERRCODE='23514';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER cancellation_snapshot_history_immutable
+  BEFORE UPDATE OR DELETE ON cancellation_snapshot_revisions
+  FOR EACH ROW EXECUTE FUNCTION prevent_cancellation_history_mutation();
+-- customer_penalty_suspended is a safety default during seller-initiated reschedule.
+-- Domain layer must set it transactionally BEFORE notifying client; clearing
+-- requires client confirmation of new agreement and checked current revision.
