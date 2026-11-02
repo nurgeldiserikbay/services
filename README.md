@@ -131,3 +131,13 @@ git add docs/ru index.html scripts/build-site.mjs
 
 ## UX-прототип v2 — маршруты и заявка
 В [интерактивном прототипе](https://nurgeldiserikbay.github.io/services/prototype.html) теперь есть отдельная карточка мастера в компании и статус заявки с возможностью демо-принятия, отказа и отмены. [Матрица UI ↔ бизнес-правила ↔ API](docs/ux/prototype-v2-mapping.md) объясняет, что именно моделируется, какие стороны имеют права и что ещё должно реализоваться на backend. Никакие контактные данные, заявки или SMS не отправляются; история существует только до перезагрузки демо.
+
+
+## Readiness для реализации (проверенный реестр пробелов)
+
+- [IMPLEMENTATION_READY.md](IMPLEMENTATION_READY.md) — статус проектирования, P0/P1/P2-блокеры, требования к доказательствам CI/QA и правила утверждения.
+- [Спецификация конкурентных заявок](docs/architecture/request-consistency.md) и [матрица расхождений](docs/architecture/request-contract-gap-plan.md).
+- [ADR-0006 — предлагаемая двухсторонняя договорённость о времени](docs/adr/0006-schedule-agreement-proposal.md) (PROPOSED, не утверждён).
+- [Алгоритм срока отмены](contracts/cancellation-deadline-algorithm.md), [история и гостевой доступ](contracts/guest-schedule-snapshot-contract.md).
+
+**Важно:** новые схемы и OpenAPI проектные, не развернуты. PR может требовать проверок; отсутствие выполненного CI не означает успешной валидации.
