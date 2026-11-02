@@ -1,6 +1,6 @@
 # IMPLEMENTATION_READY — Services: status and release gates
 
-**Snapshot:** 2026-11-02, branch `docs/request-consistency-v1`. **Overall status: NOT READY FOR FULL IMPLEMENTATION SIGN-OFF**. This is a readiness register, not evidence of running backend/frontend code, successful CI, security approval or regulatory compliance.
+**Snapshot:** 2026-11-02, main-based final handoff. **Specification content: COMPLETE FOR MVP HANDOFF; technical contract validation: PENDING EVIDENCE.** This is a readiness register, not evidence of running backend/frontend code, successful CI, security approval or regulatory compliance.
 
 ## Product decisions preserved
 
@@ -73,3 +73,7 @@ OpenAPI now describes `POST /guest-requests/{id}/schedule-access/challenges` and
 ## Финальный список проверки документов
 
 [Final documentation checklist](docs/architecture/final-documentation-checklist.md) — проверяемые условия по OpenAPI, Prisma/SQL, бизнес-правилам, UX/локализации, HTML и передаче в разработку. В таблице evidence нельзя ставить PASS без ссылки на реальный запуск и SHA.
+
+## Final handoff decision (2026-11-02)
+
+[Final handoff and scope freeze](docs/architecture/final-handoff.md) records the accepted MVP business rules and identifies remaining **implementation/verification gates**. Do not interpret content-complete as a successful PostgreSQL migration, live authorization implementation or production release. ADR-0006 is accepted. Use this handoff as the entry point for backend/frontend/admin development tasks and attach CI run evidence before marking contracts validated.
