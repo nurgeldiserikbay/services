@@ -11,7 +11,7 @@
 - [ ] SQL concurrency tests demonstrate transaction safety, not just static syntax.
 
 ## 2. Business and API synchronization
-- [ ] ADR-0006 accepted or revised as explicit business decision (until then, only proposed).
+- [x] ADR-0006 accepted as product decision on 2026-11-02; technical implementation validation remains separate.
 - [ ] Existing `PATCH /requests/{id}/schedule` is either removed or explicitly kept as non-penalizing deprecated draft; no unilateral agreed time.
 - [ ] Guest `MANAGE_SCHEDULE` issuance, lifetime, challenge and token rotation agreed with ADR-0005; never use `READ_CANCEL` as a substitute.
 - [ ] Snapshot revision and live projection are transactionally consistent; cancellation audit identifies the evaluated revision and exception.
