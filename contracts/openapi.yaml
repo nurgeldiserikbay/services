@@ -483,7 +483,13 @@ paths:
     patch:
       tags: [Bookings]
       operationId: changeServiceRequestSchedule
-      summary: Продавец отмечает договорённое вне платформы время; уведомление клиенту обязательно
+      deprecated: true
+      summary: Legacy draft — продавец отмечает время; без подтверждения другой стороны штрафы запрещены
+      description: >
+        Deprecated design route. A seller-entered time is NOT a verified agreement and MUST NOT
+        activate automatic late customer penalties. Proposed replacement is ADR-0006
+        schedule-proposals with explicit recipient confirmation. Do not implement this
+        route as unilateral confirmed-schedule mutation.
       security:
         - sessionAuth: []
         - webSession: []
@@ -501,7 +507,7 @@ paths:
               $ref: '#/components/schemas/ScheduleUpdate'
       responses:
         '200':
-          description: Updated schedule and notification intent, previous deadline not silently reused
+          description: Legacy seller-entered schedule note only; no new penalizing deadline until customer confirmation (see ADR-0006)
           content:
             application/json:
               schema:
