@@ -418,7 +418,7 @@ CREATE TRIGGER affiliation_publication_revocation
 
 -- A delayed/out-of-order worker must not publish an obsolete revision as READY.
 -- Lock both parent rows to serialize with permission changes and affiliation closure.
-CREATE OR REPLACE FUNCTION guard_published_company_view_ready() RETURNS trigger AS $
+CREATE OR REPLACE FUNCTION guard_published_company_view_ready() RETURNS trigger AS $$
 DECLARE
   actual_revision INTEGER;
   affiliation_state TEXT;
@@ -437,7 +437,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 CREATE TRIGGER published_company_view_revision_guard
   BEFORE INSERT OR UPDATE ON published_company_professional_views
   FOR EACH ROW EXECUTE FUNCTION guard_published_company_view_ready();
