@@ -1,5 +1,20 @@
 # Services — жобаның аяқталу чеклисті
 
+> **Жедел жаңарту — 2026-11-04:** төмендегі 2026-11-03 snapshot көрсеткіштері тарихи және қазіргі прогресті толық көрсетпейді. Оларды автоматты түрде production дайындығы деп есептемеңіз.
+
+## 2026-11-04: соңғы расталған даму мәртебесі
+
+| Бағыт | Main ішіндегі тексерілген жұмыс | Әлі іске қосылмаған негізгі ағын |
+| --- | --- | --- |
+| Docs | G0, Geo, public profile және service-offer контрактілері: PR #4, #5, #6, #8 merged | Full sign-off, cross-repo contract acceptance |
+| Backend | Жария қызмет API, guest OTP crypto + atomic proof, transaction/core, notification staging және IN_APP materialization: PR #5–#10 merged | Реал SMS/email OTP провайдері; қауіпсіз guest HTTP/BFF, login/ACL, орындаушының public accept/decline API |
+| Frontend | Қызметтің жеке беті, guest өтінім draft, OTP қадамы: PR #5–#7 merged | OTP-ді BFF арқылы нақты жіберу, жұмыс істейтін өтінім және seller кабинет |
+| Admin | Fail-closed Next.js құрылымы, role policy және moderation table: PR #1, #2 merged | MFA/session, backend RBAC, аудиттелген нақты модерация әрекеттері |
+
+**Келесі PR-лар (әзірше main-ға біріктірілмеген):** Backend [#11](https://github.com/nurgeldiserikbay/services-back/pull/11) seller accept/decline transaction core; Frontend [#8](https://github.com/nurgeldiserikbay/services-front/pull/8) seller inbox UI; Admin [#3](https://github.com/nurgeldiserikbay/services-admin/pull/3) moderation case review presentation.
+
+**Тексеру әдісі:** Бұл жаңарту merged PR және CI evidence негізінде жазылды. Жұмыс істейтін public E2E flow, нақты SMS/email жеткізу, seller/auth ACL және production/staging deployment дәлелденген жоқ. Бұрынғы *20/70 (29%)* — тек 2026-11-03 тарихи чеклист, ағымдағы релиз дайындығына қолданылмайды. Келесі толық аудитте чеклист пункттері acceptance дәрежесі бойынша қайта саналады.
+
 **Snapshot: 2026-11-03.** Бұл құжат — тексерілген код/PR күйінің суреті. Backend және Frontend README-лері ескірген болуы мүмкін; негізгі дәлел — merged commit және CI.
 
 ## Мәртебе ережелері
