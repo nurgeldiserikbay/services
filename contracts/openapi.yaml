@@ -1227,42 +1227,109 @@ paths:
       tags: [Geography]
       operationId: listCountries
       security: []
+      summary: Публичный список стран с ISO 3166-1 и стабильными UUID
       responses:
         '200':
-          description: ISO 3166-1 countries with stable internal identifiers
+          description: Public country directory, sorted by ISO country code
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, iso2, name]
+                      properties:
+                        id: {type: string, format: uuid}
+                        iso2: {type: string, minLength: 2, maxLength: 2}
+                        name: {type: string}
+        '503':
+          description: Geo directory is not provisioned
   /geo/areas:
     get:
       tags: [Geography]
       operationId: listAreas
+      summary: Публичные регионы выбранной страны
       security: []
       parameters:
-        - in: query
-          name: country_id
+        - name: country_id
+          in: query
           required: true
-          schema:
-            type: string
-            format: uuid
+          schema: {type: string, format: uuid}
       responses:
         '200':
-          description: Regions/states within selected country
+          description: Regions/states sorted by name and stable identifier
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, country_id, name]
+                      properties:
+                        id: {type: string, format: uuid}
+                        country_id: {type: string, format: uuid}
+                        code: {type: [string, 'null']}
+                        name: {type: string}
+        '400':
+          description: Invalid country ID
   /geo/cities:
     get:
       tags: [Geography]
       operationId: searchCities
+      summary: Публичный поиск городов без обязательной геолокации
       security: []
+      description: >
+        With country_id, q may be empty to list the first 50 city matches.
+        Without country_id, a nonempty q of at least two characters is required.
+        Results are deterministically sorted and limited to 50; submit a narrower
+        query to discover additional cities. No GPS or guest session needed.
       parameters:
-        - in: query
-          name: q
-          schema:
-            type: string
-        - in: query
-          name: country_id
-          schema:
-            type: string
-            format: uuid
+        - name: q
+          in: query
+          schema: {type: string, maxLength: 140}
+        - name: country_id
+          in: query
+          schema: {type: string, format: uuid}
+        - name: area_id
+          in: query
+          schema: {type: string, format: uuid}
       responses:
         '200':
-          description: Matching cities with stable IDs, countries, areas and IANA timezones
+          description: Matching cities with stable identifiers and IANA timezone
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, country_id, area_id, name, timezone]
+                      properties:
+                        id: {type: string, format: uuid}
+                        country_id: {type: string, format: uuid}
+                        area_id: {type: [string, 'null'], format: uuid}
+                        name: {type: string}
+                        timezone: {type: string, description: IANA timezone of service city}
+        '400':
+          description: Invalid or too broad query
+        '503':
+          description: Geo directory is not provisioned
   /geo/suggestion:
     get:
       tags: [Geography]
