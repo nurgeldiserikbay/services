@@ -1499,9 +1499,10 @@ paths:
               required: [code]
               properties:
                 code: {type: string, minLength: 4, maxLength: 12}
+                client_kind: {type: string, enum: [web, native], default: web}
       responses:
         '200':
-          description: Recovery session established after contact verification
+          description: Verified session; web receives HttpOnly cookie, native receives short-lived recovery proof through TLS
           headers:
             Cache-Control:
               schema: {type: string, const: no-store}
@@ -1513,6 +1514,9 @@ paths:
                 required: [recovery_session_expires_at, requests]
                 properties:
                   recovery_session_expires_at: {type: string, format: date-time}
+                  recovery_access_token:
+                    type: string
+                    description: Native-only recovery proof returned for client_kind=native; omit for web cookies; never put in URLs or logs.
                   requests:
                     type: array
                     maxItems: 100
@@ -1534,6 +1538,7 @@ paths:
         Response is private no-store; guest capability never appears in URL.
       security:
         - guestRecoverySession: []
+        - guestRecoveryBearer: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
       responses:
@@ -1688,6 +1693,11 @@ paths:
 
 components:
   securitySchemes:
+    guestRecoveryBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: RecoveryProof
+      description: Native-only short-lived contact-verified recovery proof; never a registered account session.
     adminSession:
       type: apiKey
       in: cookie
@@ -1927,6 +1937,8 @@ components:
           enum: [pending, accepted, declined, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, completed, expired]
         scheduled_start_at: {type: [string, 'null'], format: date-time}
         scheduled_end_at: {type: [string, 'null'], format: date-time}
+        performer_professional_id: {type: [string, 'null'], format: uuid}
+        schedule_reconciliation_required: {type: boolean, default: false}
         version: {type: integer, minimum: 1}
     GuestScheduleChallenge:
       type: object
@@ -1945,11 +1957,14 @@ components:
     ScheduleProposalCreate:
       type: object
       additionalProperties: false
-      required: [start_at, end_at, timezone]
+      required: [start_at, end_at, timezone, local_start_at, utc_offset_seconds]
+      description: The server validates local wall-clock and offset against IANA timezone and TZDB, rejects DST gaps and ambiguous folds without explicit offset.
       properties:
         start_at: {type: string, format: date-time}
         end_at: {type: string, format: date-time}
         timezone: {type: string, minLength: 1, maxLength: 64}
+        local_start_at: {type: string, description: ISO local wall-clock datetime without an offset}
+        utc_offset_seconds: {type: integer, minimum: -50400, maximum: 50400}
     ScheduleProposal:
       type: object
       additionalProperties: false
@@ -1963,6 +1978,9 @@ components:
         start_at: {type: string, format: date-time}
         end_at: {type: string, format: date-time}
         timezone: {type: string}
+        local_start_at: {type: [string, 'null'], description: Original local wall-clock value without offset}
+        utc_offset_seconds: {type: [integer, 'null'], minimum: -50400, maximum: 50400}
+        tzdb_version: {type: [string, 'null']}
         request_version: {type: integer, minimum: 1}
         confirmed_at: {type: [string, 'null'], format: date-time}
         cancellation_deadline_at: {type: [string, 'null'], format: date-time}
