@@ -153,7 +153,7 @@ BEGIN
     VALUES(gen_random_uuid(),recent_request_id,1,now());
   did_reject := false;
   BEGIN
-    UPDATE no_show_claims SET status='CONFIRMED' WHERE request_id=recent_request_id;
+    UPDATE no_show_claims AS n SET status='CONFIRMED' WHERE n.request_id=recent_request_id;
   EXCEPTION WHEN check_violation THEN did_reject := true;
   END;
   IF NOT did_reject THEN RAISE EXCEPTION 'No-show confirmed without moderator decision'; END IF;
