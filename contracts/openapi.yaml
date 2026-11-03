@@ -206,6 +206,11 @@ paths:
       tags: [Organizations]
       operationId: getOrganizationPublic
       security: []
+      description: >
+        Public projection of ACTIVE organization only. DRAFT, SUSPENDED,
+        CLOSED or nonexistent records return indistinguishable 404.
+        Included offers must be published. Never disclose owner identity,
+        nonpublic contacts, staff affiliation permissions or private schedule.
       parameters:
         - $ref: '#/components/parameters/ResourceId'
       responses:
@@ -854,6 +859,12 @@ paths:
     get:
       tags: [Professionals]
       operationId: getPublicProfessional
+      security: []
+      description: >
+        Public projection of PUBLISHED professional only. DRAFT, PAUSED,
+        ARCHIVED or nonexistent records return indistinguishable 404.
+        Only public offers are included; no Person, User, raw contact JSON,
+        private calendar, team permissions or unpublished affiliations.
       parameters:
         - name: slug
           in: path
@@ -1912,6 +1923,9 @@ components:
         slug: {type: string, minLength: 3, maxLength: 160}
     Organization:
       type: object
+      description: >
+        Public ACTIVE company read model and published offer summaries only.
+        No owner person, membership, private contact or moderation data.
       required: [id, slug, name, status, offers]
       properties:
         id: {type: string, format: uuid}
@@ -1973,7 +1987,7 @@ components:
     ServiceOffer:
       type: object
       additionalProperties: false
-      description: Public projection of a PUBLISHED offer and eligible published professional or active organization. Private raw contact data and calendar allocations must not be returned.
+      description: Public projection of a PUBLISHED offer with eligible public seller. Never return raw contacts JSON, secret contact links, private calendars, or owner identity.
       required: [id, definition_id, title, seller_kind, seller_id, status, contact_methods, city_id, price_label, availability_visibility]
       properties:
         id: {type: string, format: uuid}
@@ -1985,7 +1999,7 @@ components:
         contact_methods:
           type: array
           uniqueItems: true
-          description: Only approved channel names, not phone numbers, WhatsApp IDs, secrets or booking tokens.
+          description: Only published channel names, never phone numbers, WhatsApp IDs, secrets or bearer links.
           items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
         city_id: {type: [string, 'null'], format: uuid}
         price_label: {type: [string, 'null']}
@@ -2169,6 +2183,10 @@ components:
         price_label: {type: [string, 'null']}
     ProfessionalProfile:
       type: object
+      description: >
+        Published-only read model with public offers. This response does not
+        include private person contacts, company permissions, admin notes
+        or private availability; lifecycle_status is published on public GET.
       required: [id, profession_id, lifecycle_status, slug, title, offers]
       properties:
         id:
