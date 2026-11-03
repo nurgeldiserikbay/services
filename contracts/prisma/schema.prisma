@@ -373,6 +373,7 @@ model CompanyProfessionalView {
   affiliation           Affiliation         @relation(fields: [affiliationId], references: [id], onDelete: Restrict)
   professional          ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Restrict)
   organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  publishedProjection PublishedCompanyProfessionalView?
   @@index([organizationId, publishedAt])
   @@map("company_professional_views")
 }
@@ -498,6 +499,7 @@ model ServiceRequest {
   cancellationEvent   CancellationEvent?
   guestCapabilities GuestCapability[]
   scheduleProposals   ScheduleProposal[]
+  noShowClaims       NoShowClaim[]
   events              ServiceRequestEvent[]
   busyBlocks          BusyBlock[]
   reliabilityEvents   ReliabilityEvent[]
@@ -738,6 +740,21 @@ enum ScheduleProposalActor {
   CUSTOMER
   SELLER
 }
+enum NoShowClaimStatus {
+  FILED
+  AWAITING_CUSTOMER
+  DISPUTED
+  UNCONTESTED
+  UNDER_REVIEW
+  CONFIRMED
+  REJECTED
+  EXPIRED
+}
+enum PublicationState {
+  READY
+  STALE
+  REVOKED
+}
 
 /**
  * ADR-0006 PROPOSED. Each revision is immutable as to proposed time/initiator.
@@ -754,6 +771,9 @@ model ScheduleProposal {
   proposedStartAt DateTime               @map("proposed_start_at") @db.Timestamptz(3)
   proposedEndAt   DateTime               @map("proposed_end_at") @db.Timestamptz(3)
   timezone        String                 @db.VarChar(64)
+  localStartAt    String?                @map("local_start_at") @db.VarChar(32) // ISO wall-clock snapshot; resolve DST fold explicitly
+  utcOffsetSeconds Int?                 @map("utc_offset_seconds")
+  tzdbVersion     String?                @map("tzdb_version") @db.VarChar(64)
   createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   resolvedAt      DateTime?              @map("resolved_at") @db.Timestamptz(3)
   resolvedBy      ScheduleProposalActor? @map("resolved_by")
@@ -778,8 +798,49 @@ model CancellationSnapshotRevision {
   freeCancelUntil     DateTime       @map("free_cancel_until") @db.Timestamptz(3)
   agreedAt            DateTime       @map("agreed_at") @db.Timestamptz(3)
   timezone            String         @db.VarChar(64)
+  localStartAt        String?        @map("local_start_at") @db.VarChar(32)
+  utcOffsetSeconds    Int?           @map("utc_offset_seconds")
+  tzdbVersion         String?        @map("tzdb_version") @db.VarChar(64)
   request             ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
   @@unique([requestId, scheduleRevision])
   @@index([requestId, agreedAt])
   @@map("cancellation_snapshot_revisions")
+}
+
+
+/** Published JSON may be served only when the revision guard is READY and
+ * equals the current CompanyProfessionalView revision; fail closed otherwise.
+ * An outbox worker recomputes payload, never makes authorization decisions.
+ */
+model PublishedCompanyProfessionalView {
+  viewId          String                  @id @map("view_id") @db.Uuid
+  sourceRevision  Int                     @map("source_revision")
+  state           PublicationState        @default(STALE)
+  publicPayload   Json?                   @map("public_payload")
+  generatedAt     DateTime?               @map("generated_at") @db.Timestamptz(3)
+  view            CompanyProfessionalView @relation(fields: [viewId], references: [id], onDelete: Restrict)
+  @@index([state, sourceRevision])
+  @@map("published_company_professional_views")
+}
+
+/** Reported no-show is not a RequestStatus or a reliability penalty.
+ * A claim can be confirmed only after independent authorized adjudication.
+ * Actual penalty is separately deduped in ReliabilityEvent.
+ */
+model NoShowClaim {
+  id                 String            @id @default(uuid()) @db.Uuid
+  requestId          String            @map("request_id") @db.Uuid
+  scheduleRevision   Int               @map("schedule_revision")
+  status             NoShowClaimStatus @default(FILED)
+  sellerReportedAt   DateTime          @map("seller_reported_at") @db.Timestamptz(3)
+  customerRespondedAt DateTime?        @map("customer_responded_at") @db.Timestamptz(3)
+  reviewedAt         DateTime?         @map("reviewed_at") @db.Timestamptz(3)
+  reviewedByUserId   String?           @map("reviewed_by_user_id") @db.Uuid
+  decisionReasonCode String?           @map("decision_reason_code") @db.VarChar(64)
+  evidenceReference  String?           @map("evidence_reference") @db.VarChar(256)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  request            ServiceRequest    @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  @@unique([requestId, scheduleRevision])
+  @@index([status, createdAt])
+  @@map("no_show_claims")
 }
