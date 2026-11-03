@@ -505,6 +505,7 @@ model ServiceRequest {
   cancellationSnapshot CancellationSnapshot?
   cancellationSnapshotHistory CancellationSnapshotRevision[]
   customerPenaltySuspended Boolean @default(false) @map("customer_penalty_suspended")
+  scheduleReconciliationRequired Boolean @default(false) @map("schedule_reconciliation_required")
   cancellationEvent   CancellationEvent?
   guestCapabilities GuestCapability[]
   scheduleProposals   ScheduleProposal[]
