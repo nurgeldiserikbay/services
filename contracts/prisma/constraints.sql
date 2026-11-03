@@ -283,3 +283,185 @@ ALTER TABLE reviews
     (anonymized_at IS NOT NULL AND comment IS NULL));
 -- A production migration needs a backfill/review of old rows and retention
 -- rules before changing the FK from RESTRICT to SET NULL.
+
+
+-- G0 ADR-0007/0012/0013: request-performer assignment and affiliation termination
+-- share the same row lock so concurrent assignment and termination cannot both win.
+-- A withdrawal of publication consent is INDEPENDENT of operational closure.
+CREATE OR REPLACE FUNCTION lock_active_request_affiliation() RETURNS trigger AS $$
+DECLARE
+  affiliation_record_id UUID;
+BEGIN
+  IF NEW.seller_organization_id IS NULL OR NEW.performer_professional_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  -- Existing cancellations/completions may proceed without renewed affiliation.
+  IF TG_OP = 'UPDATE' AND
+     NEW.performer_professional_id IS NOT DISTINCT FROM OLD.performer_professional_id AND
+     NEW.seller_organization_id IS NOT DISTINCT FROM OLD.seller_organization_id THEN
+    RETURN NEW;
+  END IF;
+  SELECT id INTO affiliation_record_id
+  FROM affiliations
+  WHERE organization_id = NEW.seller_organization_id
+    AND professional_id = NEW.performer_professional_id
+    AND status = 'ACTIVE'
+  ORDER BY id LIMIT 1 FOR UPDATE;
+  IF affiliation_record_id IS NULL THEN
+    RAISE EXCEPTION 'Assigned performer must have active affiliation'
+      USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER service_request_performer_active_affiliation
+  BEFORE INSERT OR UPDATE OF seller_organization_id, performer_professional_id
+  ON service_requests FOR EACH ROW EXECUTE FUNCTION lock_active_request_affiliation();
+
+CREATE OR REPLACE FUNCTION guard_affiliation_operational_close() RETURNS trigger AS $$
+BEGIN
+  IF OLD.status IS DISTINCT FROM NEW.status AND NEW.status = 'ENDED' THEN
+    IF EXISTS (
+      SELECT 1 FROM service_requests r
+      WHERE r.seller_organization_id = NEW.organization_id
+        AND r.performer_professional_id = NEW.professional_id
+        AND r.status IN ('PENDING','ACCEPTED')
+    ) THEN
+      RAISE EXCEPTION 'Resolve assigned active company requests before ending affiliation'
+        USING ERRCODE='23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER affiliation_operational_close_guard
+  BEFORE UPDATE OF status ON affiliations
+  FOR EACH ROW EXECUTE FUNCTION guard_affiliation_operational_close();
+
+-- No-show requires an accepted request and the same confirmed schedule revision.
+-- Moderation authorization and customer response are enforced by the domain API.
+CREATE OR REPLACE FUNCTION validate_no_show_claim() RETURNS trigger AS $$
+DECLARE
+  r_status TEXT;
+  r_reconcile BOOLEAN;
+  r_customer_suspended BOOLEAN;
+  start_instant TIMESTAMPTZ;
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.request_id IS DISTINCT FROM OLD.request_id OR
+       NEW.schedule_revision IS DISTINCT FROM OLD.schedule_revision OR
+       NEW.seller_reported_at IS DISTINCT FROM OLD.seller_reported_at THEN
+      RAISE EXCEPTION 'No-show claim event identity is immutable' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+  END IF;
+  SELECT status::text, schedule_reconciliation_required, customer_penalty_suspended
+    INTO r_status, r_reconcile, r_customer_suspended
+    FROM service_requests WHERE id = NEW.request_id FOR UPDATE;
+  SELECT scheduled_start_at INTO start_instant
+    FROM cancellation_snapshot_revisions
+    WHERE request_id = NEW.request_id AND schedule_revision = NEW.schedule_revision;
+  IF r_status IS DISTINCT FROM 'ACCEPTED' OR start_instant IS NULL OR
+     r_reconcile IS DISTINCT FROM FALSE OR r_customer_suspended IS DISTINCT FROM FALSE OR
+     NEW.seller_reported_at < start_instant + interval '15 minutes' OR
+     NEW.seller_reported_at > statement_timestamp() + interval '5 seconds' THEN
+    RAISE EXCEPTION 'No-show requires accepted confirmed non-disputed time and 15-minute grace'
+      USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER no_show_claim_eligibility
+  BEFORE INSERT OR UPDATE ON no_show_claims
+  FOR EACH ROW EXECUTE FUNCTION validate_no_show_claim();
+ALTER TABLE no_show_claims
+  ADD CONSTRAINT no_show_claim_adjudication_required
+  CHECK (status NOT IN ('CONFIRMED','REJECTED') OR
+    (reviewed_at IS NOT NULL AND reviewed_by_user_id IS NOT NULL AND decision_reason_code IS NOT NULL));
+
+-- On any permission or visibility change, revoke old materialization synchronously;
+-- a later worker recomputes versioned public data. Public GET must still verify
+-- READY + current sourceRevision before serving an HTTP/CDN cached response.
+CREATE OR REPLACE FUNCTION invalidate_company_publication() RETURNS trigger AS $$
+BEGIN
+  IF (OLD.master_allowed_fields IS DISTINCT FROM NEW.master_allowed_fields OR
+      OLD.company_selected_fields IS DISTINCT FROM NEW.company_selected_fields OR
+      OLD.company_content IS DISTINCT FROM NEW.company_content OR
+      OLD.published_at IS DISTINCT FROM NEW.published_at OR
+      OLD.revision IS DISTINCT FROM NEW.revision) THEN
+    IF NEW.revision <= OLD.revision THEN
+      RAISE EXCEPTION 'Company view mutation must increment revision' USING ERRCODE='23514';
+    END IF;
+    UPDATE published_company_professional_views
+       SET state='STALE' WHERE view_id=NEW.id AND state <> 'REVOKED';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER company_view_publication_invalidated
+  AFTER UPDATE ON company_professional_views
+  FOR EACH ROW EXECUTE FUNCTION invalidate_company_publication();
+
+CREATE OR REPLACE FUNCTION revoke_company_view_on_affiliation_end() RETURNS trigger AS $$
+BEGIN
+  IF OLD.status IS DISTINCT FROM NEW.status AND NEW.status <> 'ACTIVE' THEN
+    UPDATE published_company_professional_views p SET state='REVOKED'
+      FROM company_professional_views v
+      WHERE v.id=p.view_id AND v.affiliation_id=NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER affiliation_publication_revocation
+  AFTER UPDATE OF status ON affiliations
+  FOR EACH ROW EXECUTE FUNCTION revoke_company_view_on_affiliation_end();
+
+-- A delayed/out-of-order worker must not publish an obsolete revision as READY.
+-- Lock both parent rows to serialize with permission changes and affiliation closure.
+CREATE OR REPLACE FUNCTION guard_published_company_view_ready() RETURNS trigger AS $$
+DECLARE
+  actual_revision INTEGER;
+  affiliation_state TEXT;
+BEGIN
+  IF NEW.state = 'READY' THEN
+    SELECT v.revision, a.status::text INTO actual_revision, affiliation_state
+      FROM company_professional_views v
+      JOIN affiliations a ON a.id = v.affiliation_id
+      WHERE v.id = NEW.view_id
+      FOR SHARE OF v, a;
+    IF actual_revision IS NULL OR affiliation_state <> 'ACTIVE'
+       OR NEW.source_revision <> actual_revision THEN
+      RAISE EXCEPTION 'Cannot publish stale or unauthorized company view'
+        USING ERRCODE='23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER published_company_view_revision_guard
+  BEFORE INSERT OR UPDATE ON published_company_professional_views
+  FOR EACH ROW EXECUTE FUNCTION guard_published_company_view_ready();
+
+ALTER TABLE published_company_professional_views
+  ADD CONSTRAINT published_view_revision_and_payload_valid
+  CHECK (source_revision > 0 AND (state <> 'READY' OR public_payload IS NOT NULL));
+ALTER TABLE guest_recovery_sessions
+  ADD CONSTRAINT guest_recovery_session_valid
+  CHECK (expires_at > created_at AND (revoked_at IS NULL OR revoked_at >= created_at));
+ALTER TABLE guest_challenges
+  ADD CONSTRAINT guest_challenge_consumption_valid
+  CHECK (consumed_at IS NULL OR consumed_at >= created_at);
+
+-- Cancellation intents remain non-null FK-linked to a parent domain outbox event;
+-- insert event, then two intents, then commit in a SINGLE transaction.
+-- Do NOT move the two-intents constraint to the asynchronous worker.
+
+-- Historical affiliations must be retained for request audit; never hard-delete.
+CREATE OR REPLACE FUNCTION prevent_affiliation_delete() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Affiliation deletion forbidden: end operational link with retained history'
+    USING ERRCODE='23514';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER affiliation_no_hard_delete
+  BEFORE DELETE ON affiliations FOR EACH ROW EXECUTE FUNCTION prevent_affiliation_delete();

@@ -354,11 +354,6 @@ paths:
       tags: [Professionals]
       operationId: getPublishedServiceOffer
       summary: Публичная услуга с реальным продавцом и доступными каналами
-      description: >
-        Only published offers with an eligible visible seller. Never disclose
-        raw private contacts or return a different seller from the stored
-        ServiceOffer professional/organization XOR. Do not expose inactive
-        locations or unpublished offers. Callers do not need an account.
       security: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
@@ -1232,42 +1227,109 @@ paths:
       tags: [Geography]
       operationId: listCountries
       security: []
+      summary: Публичный список стран с ISO 3166-1 и стабильными UUID
       responses:
         '200':
-          description: ISO 3166-1 countries with stable internal identifiers
+          description: Public country directory, sorted by ISO country code
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, iso2, name]
+                      properties:
+                        id: {type: string, format: uuid}
+                        iso2: {type: string, minLength: 2, maxLength: 2}
+                        name: {type: string}
+        '503':
+          description: Geo directory is not provisioned
   /geo/areas:
     get:
       tags: [Geography]
       operationId: listAreas
+      summary: Публичные регионы выбранной страны
       security: []
       parameters:
-        - in: query
-          name: country_id
+        - name: country_id
+          in: query
           required: true
-          schema:
-            type: string
-            format: uuid
+          schema: {type: string, format: uuid}
       responses:
         '200':
-          description: Regions/states within selected country
+          description: Regions/states sorted by name and stable identifier
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, country_id, name]
+                      properties:
+                        id: {type: string, format: uuid}
+                        country_id: {type: string, format: uuid}
+                        code: {type: [string, 'null']}
+                        name: {type: string}
+        '400':
+          description: Invalid country ID
   /geo/cities:
     get:
       tags: [Geography]
       operationId: searchCities
+      summary: Публичный поиск городов без обязательной геолокации
       security: []
+      description: >
+        With country_id, q may be empty to list the first 50 city matches.
+        Without country_id, a nonempty q of at least two characters is required.
+        Results are deterministically sorted and limited to 50; submit a narrower
+        query to discover additional cities. No GPS or guest session needed.
       parameters:
-        - in: query
-          name: q
-          schema:
-            type: string
-        - in: query
-          name: country_id
-          schema:
-            type: string
-            format: uuid
+        - name: q
+          in: query
+          schema: {type: string, maxLength: 140}
+        - name: country_id
+          in: query
+          schema: {type: string, format: uuid}
+        - name: area_id
+          in: query
+          schema: {type: string, format: uuid}
       responses:
         '200':
-          description: Matching cities with stable IDs, countries, areas and IANA timezones
+          description: Matching cities with stable identifiers and IANA timezone
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, country_id, area_id, name, timezone]
+                      properties:
+                        id: {type: string, format: uuid}
+                        country_id: {type: string, format: uuid}
+                        area_id: {type: [string, 'null'], format: uuid}
+                        name: {type: string}
+                        timezone: {type: string, description: IANA timezone of service city}
+        '400':
+          description: Invalid or too broad query
+        '503':
+          description: Geo directory is not provisioned
   /geo/suggestion:
     get:
       tags: [Geography]
@@ -1343,8 +1405,232 @@ paths:
                           type: string
                         is_sponsored:
                           type: boolean
+                        slug:
+                          type: [string, 'null']
+                          description: Published professional slug for /professionals/{slug}; null otherwise.
                   next_cursor:
                     type: [string, 'null']
+  /requests/{id}/no-show-claims:
+    post:
+      tags: [Bookings]
+      operationId: fileNoShowClaim
+      summary: Продавец заявляет о неявке без немедленного штрафа клиенту
+      description: >
+        Requires seller or authorized company operator. Only for ACCEPTED requests
+        with agreed and non-disputed schedule, at least 15 minutes after start
+        by server time. Claim is not a new RequestStatus or a reliability event.
+        Customer is notified through transactional outbox, with no claim of delivery.
+      security:
+        - sessionAuth: []
+        - webSession: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestVersion'
+      responses:
+        '201':
+          description: New no-show claim pending customer response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoShowClaim'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /requests/{id}/no-show-claims/{claimId}/response:
+    post:
+      tags: [Bookings]
+      operationId: respondToNoShowClaim
+      summary: Клиент подтверждает присутствие или оспаривает неявку
+      description: >
+        Authorized request customer or scoped guest only. The response cannot
+        lower reliability directly; disputes enter limited admin review.
+      security:
+        - sessionAuth: []
+        - webSession: []
+        - guestCapability: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+        - $ref: '#/components/parameters/NoShowClaimId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [response]
+              properties:
+                response: {type: string, enum: [i_attended, seller_absent, i_was_absent, dispute]}
+      responses:
+        '200':
+          description: Claim recorded; no automatic negative score before review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoShowClaim'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/no-show-claims/{claimId}/decision:
+    post:
+      tags: [Bookings]
+      operationId: adjudicateNoShowClaim
+      summary: Решение уполномоченного модератора о неявке
+      description: >
+        Admin-only with MFA and audited scope, independently checked against
+        underlying request and schedule revision. An appeal can reverse a prior
+        reliability event, never rewrite history.
+      security:
+        - adminSession: []
+      parameters:
+        - $ref: '#/components/parameters/NoShowClaimId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [decision, reason_code]
+              properties:
+                decision: {type: string, enum: [confirmed, rejected]}
+                reason_code: {type: string, minLength: 2, maxLength: 64}
+      responses:
+        '200':
+          description: Audited decision, reliability processed through deduplicated domain event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoShowClaim'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /guest-requests/recovery/challenges:
+    post:
+      tags: [Bookings]
+      operationId: startGuestRequestRecovery
+      summary: Восстановить доступ к гостевой заявке через оригинальный контакт
+      description: >
+        Generic response without contact or request enumeration. Requires
+        independent rate, resend and provider-budget limits. No session/capability
+        is returned at this step and no new ServiceRequest is created.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [channel, contact]
+              properties:
+                channel: {type: string, enum: [sms, email]}
+                contact: {type: string, maxLength: 320}
+      responses:
+        '202':
+          description: Generic challenge initiation response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [challenge_id]
+                properties:
+                  challenge_id: {type: string, format: uuid}
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /guest-requests/recovery/challenges/{id}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestRequestRecovery
+      summary: Проверить OTP и открыть ограниченное окно выбора своих заявок
+      description: >
+        Successful verification grants a short-lived recovery session only,
+        not a blanket READ_CANCEL capability. The server resolves candidate
+        requests exclusively from the verified original contact. Web sessions
+        use HttpOnly Secure SameSite cookie and mutations require CSRF protection;
+        native sessions use OS secure storage. No tokens in URL, response logs or analytics.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: {type: string, minLength: 4, maxLength: 12}
+                client_kind: {type: string, enum: [web, native], default: web}
+      responses:
+        '200':
+          description: Verified session; web receives HttpOnly cookie, native receives short-lived recovery proof through TLS
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [recovery_session_expires_at, requests]
+                properties:
+                  recovery_session_expires_at: {type: string, format: date-time}
+                  recovery_access_token:
+                    type: string
+                    description: Native-only recovery proof returned for client_kind=native; omit for web cookies; never put in URLs or logs.
+                  requests:
+                    type: array
+                    maxItems: 100
+                    description: Only opaque request identifiers belonging to verified contact; paginate beyond the limit.
+                    items: {type: string, format: uuid}
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /guest-requests/recovery/requests/{id}/session:
+    post:
+      tags: [Bookings]
+      operationId: selectRecoveredGuestRequest
+      summary: Выпустить новый READ_CANCEL для одной проверенной заявки
+      description: >
+        Requires the contact-verified recovery session and CSRF protection on
+        web. Request UUID must belong to the verified contact; revalidate
+        request state and ownership, rotate session, and never elevate to MANAGE_SCHEDULE.
+        Response is private no-store; guest capability never appears in URL.
+      security:
+        - guestRecoverySession: []
+        - guestRecoveryBearer: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Single request-scoped session established
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [request_id, scope, expires_at]
+                properties:
+                  request_id: {type: string, format: uuid}
+                  scope: {type: string, const: read_cancel}
+                  expires_at: {type: string, format: date-time}
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /guest-requests/challenges:
     post:
       tags: [Bookings]
@@ -1477,6 +1763,21 @@ paths:
 
 components:
   securitySchemes:
+    guestRecoveryBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: RecoveryProof
+      description: Native-only short-lived contact-verified recovery proof; never a registered account session.
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: __Host-services_admin_session
+      description: Dedicated administrator session, MFA and scope checked server-side.
+    guestRecoverySession:
+      type: apiKey
+      in: cookie
+      name: __Host-services_guest_recovery
+      description: Verified-contact recovery session, not a registered login or blanket request capability. For native clients an equivalent short-lived proof uses a dedicated securely stored bearer flow.
     webSession:
       type: apiKey
       in: cookie
@@ -1500,6 +1801,11 @@ components:
       schema:
         type: string
         format: uuid
+    NoShowClaimId:
+      in: path
+      name: claimId
+      required: true
+      schema: {type: string, format: uuid}
     ScheduleProposalId:
       in: path
       name: proposalId
@@ -1530,6 +1836,20 @@ components:
         minLength: 8
         maxLength: 128
   schemas:
+    NoShowClaim:
+      type: object
+      additionalProperties: false
+      required: [id, request_id, schedule_revision, status, seller_reported_at]
+      properties:
+        id: {type: string, format: uuid}
+        request_id: {type: string, format: uuid}
+        schedule_revision: {type: integer, minimum: 1}
+        status:
+          type: string
+          enum: [filed, awaiting_customer, disputed, uncontested, under_review, confirmed, rejected, expired]
+        seller_reported_at: {type: string, format: date-time}
+        customer_responded_at: {type: [string, 'null'], format: date-time}
+        reviewed_at: {type: [string, 'null'], format: date-time}
     AuthChallengeRequest:
       type: object
       additionalProperties: false
@@ -1592,12 +1912,16 @@ components:
         slug: {type: string, minLength: 3, maxLength: 160}
     Organization:
       type: object
-      required: [id, slug, name, status]
+      required: [id, slug, name, status, offers]
       properties:
         id: {type: string, format: uuid}
         slug: {type: string}
         name: {type: string}
         status: {type: string, enum: [draft, active, suspended, closed]}
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOffer'
     CompanyFieldsPermission:
       type: object
       additionalProperties: false
@@ -1649,13 +1973,7 @@ components:
     ServiceOffer:
       type: object
       additionalProperties: false
-      description: >
-        Public projection of one PUBLISHED offer with an eligible published
-        professional or active organization seller. DRAFT/PAUSED/ARCHIVED offers,
-        inactive seller records and inactive locations are indistinguishable 404.
-        Never return raw contacts JSON, owner private identity or availability
-        schedule. contact_methods are allowed published channel names only,
-        not telephone numbers, WhatsApp identifiers, private URLs or tokens.
+      description: Public projection of a PUBLISHED offer and eligible published professional or active organization. Private raw contact data and calendar allocations must not be returned.
       required: [id, definition_id, title, seller_kind, seller_id, status, contact_methods, city_id, price_label, availability_visibility]
       properties:
         id: {type: string, format: uuid}
@@ -1667,10 +1985,7 @@ components:
         contact_methods:
           type: array
           uniqueItems: true
-          description: >
-            Published contact channel availability only. Raw contact targets are
-            deliberately omitted until separate consent-filtered public contact
-            projection and action security are formally reviewed.
+          description: Only approved channel names, not phone numbers, WhatsApp IDs, secrets or booking tokens.
           items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
         city_id: {type: [string, 'null'], format: uuid}
         price_label: {type: [string, 'null']}
@@ -1700,6 +2015,8 @@ components:
           enum: [pending, accepted, declined, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, completed, expired]
         scheduled_start_at: {type: [string, 'null'], format: date-time}
         scheduled_end_at: {type: [string, 'null'], format: date-time}
+        performer_professional_id: {type: [string, 'null'], format: uuid}
+        schedule_reconciliation_required: {type: boolean, default: false}
         version: {type: integer, minimum: 1}
     GuestScheduleChallenge:
       type: object
@@ -1718,11 +2035,14 @@ components:
     ScheduleProposalCreate:
       type: object
       additionalProperties: false
-      required: [start_at, end_at, timezone]
+      required: [start_at, end_at, timezone, local_start_at, utc_offset_seconds]
+      description: The server validates local wall-clock and offset against IANA timezone and TZDB, rejects DST gaps and ambiguous folds without explicit offset.
       properties:
         start_at: {type: string, format: date-time}
         end_at: {type: string, format: date-time}
         timezone: {type: string, minLength: 1, maxLength: 64}
+        local_start_at: {type: string, description: ISO local wall-clock datetime without an offset}
+        utc_offset_seconds: {type: integer, minimum: -50400, maximum: 50400}
     ScheduleProposal:
       type: object
       additionalProperties: false
@@ -1736,6 +2056,9 @@ components:
         start_at: {type: string, format: date-time}
         end_at: {type: string, format: date-time}
         timezone: {type: string}
+        local_start_at: {type: [string, 'null'], description: Original local wall-clock value without offset}
+        utc_offset_seconds: {type: [integer, 'null'], minimum: -50400, maximum: 50400}
+        tzdb_version: {type: [string, 'null']}
         request_version: {type: integer, minimum: 1}
         confirmed_at: {type: [string, 'null'], format: date-time}
         cancellation_deadline_at: {type: [string, 'null'], format: date-time}
@@ -1835,9 +2158,18 @@ components:
           items:
             type: string
             format: uuid
+    PublicOffer:
+      type: object
+      additionalProperties: false
+      required: [id, title, delivery_mode, price_label]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string}
+        delivery_mode: {type: string, enum: [at_location, at_customer, online, hybrid]}
+        price_label: {type: [string, 'null']}
     ProfessionalProfile:
       type: object
-      required: [id, profession_id, lifecycle_status]
+      required: [id, profession_id, lifecycle_status, slug, title, offers]
       properties:
         id:
           type: string
@@ -1849,7 +2181,12 @@ components:
           type: string
           enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
         slug:
-          type: [string, 'null']
+          type: string
+        title: {type: [string, 'null']}
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOffer'
         version:
           type: integer
           minimum: 1
