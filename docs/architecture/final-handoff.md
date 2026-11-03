@@ -1,11 +1,11 @@
 # Services — финальная передача технического задания
 
-**Версия:** ТЗ v1.0 (содержание утверждено, техническая проверка — отдельный gate). **Дата:** 2026-11-02.  
+**Версия:** ТЗ v1.0 (первый утверждённый базис платформы, расширяемая архитектура, техническая проверка — отдельный gate). **Дата:** 2026-11-02.  
 **Граница:** документ фиксирует требования к разработке, но не утверждает, что приложения уже реализованы, протестированы или готовы к публикации.
 
 ## Итоговое решение
 
-**Product scope: FROZEN FOR MVP.** Владелец продукта подтвердил ADR-0006. Новых продуктовых вопросов, препятствующих декомпозиции разработки, не выявлено; изменения требований оформлять новыми ADR с влиянием на API/схему/UX.
+**Product scope: PLATFORM-WIDE CORE CONTRACTS, RELEASES MAY BE STAGED.** Владелец продукта подтвердил ADR-0006. Новых продуктовых вопросов, препятствующих декомпозиции разработки, не выявлено; изменения требований оформлять новыми ADR с влиянием на API/схему/UX.
 
 ### Продукт
 - Открытый глобальный каталог услуг; локальная выдача по умолчанию, ручная смена географии, публичные страницы без регистрации.
@@ -34,7 +34,7 @@
 
 | Показатель | Статус | Что необходимо |
 | --- | --- | --- |
-| Бизнес-требования MVP | **Содержательно зафиксированы** | Не менять без ADR |
+| Бизнес-требования платформы | **Содержательно зафиксированы** | Не менять без ADR |
 | Документированная архитектура и API | **Подготовлены как reference** | Проверка совместимости и миграций при реализации |
 | HTML ↔ Markdown | **Исправлено в main** | Контроль через docs workflow на конечном SHA |
 | OpenAPI/Prisma/PostgreSQL CI | **Результат последнего main SHA не подтверждён** | Получить полный успешный workflow run для итогового коммита |
@@ -75,3 +75,8 @@ PostgreSQL проверки — только с одноразовой test data
 - Проверить regenerated HTML и все контрактные checks на актуальном SHA.
 
 **Остальные вопросы про реализацию не блокируют завершение текста ТЗ; они входят в обязательную Definition of Done разработки.**
+
+
+## Amendment 2026-11-03 — no MVP architecture shortcut
+
+The product owner clarified that Services must be designed as a full, evolving platform. A staged launch or prioritized release backlog must not be confused with an architectural MVP boundary. Contract amendments are documented in ADR-0007 through ADR-0013 and the G0 acceptance register; their presence does not mean runtime implementation is complete. Future seller, guest, scheduling, compliance and workload modules must respect stable identities, tenant/resource ACL, auditability and immutable historical agreements.

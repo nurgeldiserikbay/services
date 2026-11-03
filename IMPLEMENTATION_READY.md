@@ -1,6 +1,6 @@
 # IMPLEMENTATION_READY — Services: status and release gates
 
-**Snapshot:** 2026-11-02, main-based final handoff. **Specification content: COMPLETE FOR MVP HANDOFF; technical contract validation: PENDING EVIDENCE.** This is a readiness register, not evidence of running backend/frontend code, successful CI, security approval or regulatory compliance.
+**Snapshot:** 2026-11-03, full-platform G0 contract review. **Specification content: DESIGNED FOR PLATFORM-WIDE HANDOFF; contract validation and independent sign-off: TRACKED SEPARATELY.** This is a readiness register, not evidence of running backend/frontend code, successful CI, security approval or regulatory compliance.
 
 ## Product decisions preserved
 
@@ -76,7 +76,7 @@ OpenAPI now describes `POST /guest-requests/{id}/schedule-access/challenges` and
 
 ## Final handoff decision (2026-11-02)
 
-[Final handoff and scope freeze](docs/architecture/final-handoff.md) records the accepted MVP business rules and identifies remaining **implementation/verification gates**. Do not interpret content-complete as a successful PostgreSQL migration, live authorization implementation or production release. ADR-0006 is accepted. Use this handoff as the entry point for backend/frontend/admin development tasks and attach CI run evidence before marking contracts validated.
+[Final handoff and scope freeze](docs/architecture/final-handoff.md) records the accepted platform-wide business rules and identifies remaining **implementation/verification gates**. Do not interpret content-complete as a successful PostgreSQL migration, live authorization implementation or production release. ADR-0006 is accepted. Use this handoff as the entry point for backend/frontend/admin development tasks and attach CI run evidence before marking contracts validated.
 
 ## Security and lifecycle review addendum (2026-11-03)
 
@@ -90,6 +90,11 @@ Three **proposed** ADRs capture newly identified implementation gates:
 - [ADR-0010](docs/adr/0010-published-company-view.md): materialized public company professional view, revision fences and fail-closed disclosure on revoked permissions; eventual CDN purge alone is insufficient.
 - [CAN-T13](contracts/cancellation-deadline-algorithm.md): 15-minute grace after **both** request acceptance and confirmed time agreement, capped by service start; no penalty on mere proposed date.
 
-- [ADR-0011](docs/adr/0011-review-erasure-and-seller-identity.md): nullable review authors and anonymization after lawful erasure; retain seller XOR FK for MVP with centralized ACL policy, revisit SellerIdentity only if measurable benefits justify migration. Reference Prisma/SQL changed, but actual migration and erasure graph are **not implemented**.
+- [ADR-0011](docs/adr/0011-review-erasure-and-seller-identity.md): nullable review authors and anonymization after lawful erasure; retain seller XOR FK as a deliberate baseline with a centralized ACL policy with centralized ACL policy, revisit SellerIdentity only if measurable benefits justify migration. Reference Prisma/SQL changed, but actual migration and erasure graph are **not implemented**.
 
 - [ADR-0012](docs/adr/0012-timezone-noshow-guest-links.md): common platform-wide rules for timezone/TZDB changes, no-show adjudication workflow, and guest web/native deep-link boundaries. **Scope is full product architecture, not an MVP shortcut**; implementation evidence and cross-platform tests are still required.
+
+
+## G0 contract reconciliation — 2026-11-03
+
+The latest [G0 contract acceptance register](docs/architecture/g0-contract-acceptance.md) is the canonical status source for sign-off. This repository contains reference schemas, not backend migrations. The G0 branch `contracts/g0-integrity-2026-11-03` adds scoped guest recovery API and session, reviewable no-show lifecycle, IANA/local/UTC schedule metadata, `PublishedCompanyProfessionalView` publication guard, affiliation/request exclusion and PostgreSQL smoke tests. Check the final PR HEAD workflow evidence before marking G0 `CONTRACT-VALIDATED`. Only an independent reviewer can grant design sign-off; successful CI alone does not implement security or production release gates.

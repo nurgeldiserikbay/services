@@ -91,5 +91,38 @@ assert(api.components.schemas?.GuestScheduleChallenge,'Missing guest schedule ve
 assert(api.paths['/requests/{id}/schedule']?.patch?.deprecated===true,
  'Legacy unilateral schedule patch must remain deprecated');
 
-assert(operations>=45,`MVP API unexpectedly small (${operations})`);
+// G0 complete guest recovery and no-show adjudication contracts.
+for(const route of [
+ '/guest-requests/recovery/challenges',
+ '/guest-requests/recovery/challenges/{id}/verify'
+]){
+ const operation=op(route,'post');
+ assert(Array.isArray(operation.security)&&operation.security.length===0,
+   `OTP initiation/verification must be public but throttled: ${route}`);
+ assert(operation.responses?.['429'],`Recovery endpoint must expose 429: ${route}`);
+}
+const recoverySelect=op('/guest-requests/recovery/requests/{id}/session','post');
+assert(hasSecurity(recoverySelect,'guestRecoverySession'),
+ 'Recovery selection needs independently verified guest recovery session');
+assert(!hasSecurity(recoverySelect,'webSession')&&!hasSecurity(recoverySelect,'sessionAuth'),
+ 'Registered-account session must not authorize recovery selection');
+assert(api.components.securitySchemes?.guestRecoverySession,
+ 'Missing short-lived guest recovery cookie security scheme');
+const fileClaim=op('/requests/{id}/no-show-claims','post');
+assert(hasSecurity(fileClaim,'sessionAuth')&&hasSecurity(fileClaim,'webSession'),
+ 'No-show report must require authorized seller login');
+const claimParams=(fileClaim.parameters??[]).map(resolve);
+for(const name of ['Idempotency-Key','If-Match']){
+ assert(claimParams.some(p=>p.in==='header'&&p.name===name&&p.required===true),
+  `No-show filing requires ${name}`);
+}
+const respondClaim=op('/requests/{id}/no-show-claims/{claimId}/response','post');
+assert(hasSecurity(respondClaim,'guestCapability')&&hasSecurity(respondClaim,'sessionAuth'),
+ 'Customer/guest no-show response must support scoped access');
+const decideClaim=op('/admin/no-show-claims/{claimId}/decision','post');
+assert(hasSecurity(decideClaim,'adminSession')&&!hasSecurity(decideClaim,'guestCapability'),
+ 'Only separate admin session may adjudicate no-show');
+assert(api.components.schemas?.NoShowClaim,'Missing no-show response schema');
+
+assert(operations>=45,`Services API unexpectedly small (${operations})`);
 console.log(`Contract invariants passed: ${Object.keys(api.paths).length} paths, ${operations} methods, ${operationIds.size} unique operation IDs.`);

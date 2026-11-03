@@ -21,6 +21,11 @@ DECLARE
   guest_contact_id UUID := gen_random_uuid();
   busy_id UUID := gen_random_uuid();
   did_reject BOOLEAN;
+  affiliation_id UUID := gen_random_uuid();
+  corporate_offer_id UUID := gen_random_uuid();
+  corporate_request_id UUID := gen_random_uuid();
+  company_view_id UUID := gen_random_uuid();
+  recent_request_id UUID := gen_random_uuid();
 BEGIN
   INSERT INTO users(id,email) VALUES(owner_user,'owner-smoke@example.invalid'),(customer_user,'client-smoke@example.invalid');
   INSERT INTO persons(id,user_id) VALUES(owner_person,owner_user),(customer_person,customer_user);
@@ -60,6 +65,19 @@ BEGIN
   END;
   IF NOT did_reject THEN RAISE EXCEPTION 'Guest read/cancel scope without request was allowed'; END IF;
 
+  -- Expired recovery sessions cannot be stored, and recovery OTP purpose is isolated.
+  INSERT INTO guest_challenges(id,guest_contact_id,code_hash,purpose,expires_at)
+    VALUES(gen_random_uuid(),guest_contact_id,'recovery-codehash','RECOVER_REQUEST',now()+interval '5 minutes');
+  INSERT INTO guest_recovery_sessions(id,guest_contact_id,token_hash,expires_at)
+    VALUES(gen_random_uuid(),guest_contact_id,'recovery-token-smoke',now()+interval '15 minutes');
+  did_reject := false;
+  BEGIN
+    INSERT INTO guest_recovery_sessions(id,guest_contact_id,token_hash,expires_at)
+      VALUES(gen_random_uuid(),guest_contact_id,'expired-recovery-smoke',now()-interval '1 hour');
+  EXCEPTION WHEN check_violation THEN did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'Expired recovery session allowed'; END IF;
+
   -- User's professional profile is unique per profession, including archived.
   did_reject := false;
   BEGIN
@@ -83,6 +101,69 @@ BEGIN
   INSERT INTO service_requests(id,offer_id,customer_person_id,source_context,seller_professional_id,status,scheduled_start_at,scheduled_end_at)
     VALUES(request_id,personal_offer,customer_person,'PERSONAL',professional_id,'ACCEPTED',
       '2030-01-01 10:00:00+00','2030-01-01 11:00:00+00');
+
+  -- The same company-performer pair cannot be operationally ended while an
+  -- accepted or pending corporate request is assigned to this professional.
+  INSERT INTO affiliations(id,organization_id,professional_id,status,specialist_approved_at,company_approved_at)
+    VALUES(affiliation_id,company_id,professional_id,'ACTIVE',now(),now());
+  INSERT INTO service_offers(id,definition_id,organization_id,title,delivery_mode,contacts)
+    VALUES(corporate_offer_id,service_id,company_id,'Corporate installation','online','{}'::jsonb);
+  INSERT INTO service_requests(id,offer_id,customer_person_id,source_context,seller_organization_id,performer_professional_id,status)
+    VALUES(corporate_request_id,corporate_offer_id,customer_person,'ORGANIZATION',company_id,professional_id,'PENDING');
+  did_reject := false;
+  BEGIN
+    UPDATE affiliations SET status='ENDED',ended_at=now() WHERE id=affiliation_id;
+  EXCEPTION WHEN check_violation THEN did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'Active corporate request did not block affiliation end'; END IF;
+
+  INSERT INTO company_professional_views(id,affiliation_id,professional_id,organization_id,
+    master_allowed_fields,company_selected_fields,revision,published_at)
+    VALUES(company_view_id,affiliation_id,professional_id,company_id,'{}'::jsonb,'{}'::jsonb,1,now());
+  INSERT INTO published_company_professional_views(view_id,source_revision,state,public_payload)
+    VALUES(company_view_id,1,'READY','{}'::jsonb);
+  UPDATE company_professional_views SET revision=2,company_selected_fields='{"bio":false}'::jsonb
+    WHERE id=company_view_id;
+  IF (SELECT state::text FROM published_company_professional_views WHERE view_id=company_view_id) <> 'STALE' THEN
+    RAISE EXCEPTION 'Company publication was not invalidated on permission change';
+  END IF;
+  -- A lagging worker cannot re-publish stale sourceRevision=1 after view becomes 2.
+  did_reject := false;
+  BEGIN
+    UPDATE published_company_professional_views SET state='READY' WHERE view_id=company_view_id;
+  EXCEPTION WHEN check_violation THEN did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'Stale worker was able to publish old company view'; END IF;
+  UPDATE service_requests SET status='DECLINED',version=version+1 WHERE id=corporate_request_id;
+  UPDATE affiliations SET status='ENDED',ended_at=now() WHERE id=affiliation_id;
+  IF (SELECT state::text FROM published_company_professional_views WHERE view_id=company_view_id) <> 'REVOKED' THEN
+    RAISE EXCEPTION 'Ended affiliation did not revoke public projection';
+  END IF;
+
+  -- A verified schedule is needed for no-show, and seller claims must wait 15 minutes.
+  INSERT INTO service_requests(id,offer_id,customer_person_id,source_context,seller_professional_id,
+    status,accepted_at,scheduled_start_at,scheduled_end_at)
+    VALUES(recent_request_id,personal_offer,customer_person,'PERSONAL',professional_id,
+      'ACCEPTED',now()-interval '2 hours',now()-interval '20 minutes',now()+interval '40 minutes');
+  INSERT INTO cancellation_snapshot_revisions(id,request_id,schedule_revision,policy_revision,
+    scheduled_start_at,free_cancel_before_min,free_cancel_until,agreed_at,timezone)
+    VALUES(gen_random_uuid(),recent_request_id,1,1,now()-interval '20 minutes',120,
+      now()-interval '2 hours',now()-interval '2 hours','Asia/Almaty');
+  did_reject := false;
+  BEGIN
+    INSERT INTO no_show_claims(id,request_id,schedule_revision,seller_reported_at)
+      VALUES(gen_random_uuid(),recent_request_id,1,now()-interval '10 minutes');
+  EXCEPTION WHEN check_violation THEN did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'No-show before 15-minute threshold was allowed'; END IF;
+  INSERT INTO no_show_claims(id,request_id,schedule_revision,seller_reported_at)
+    VALUES(gen_random_uuid(),recent_request_id,1,now());
+  did_reject := false;
+  BEGIN
+    UPDATE no_show_claims AS n SET status='CONFIRMED' WHERE n.request_id=recent_request_id;
+  EXCEPTION WHEN check_violation THEN did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'No-show confirmed without moderator decision'; END IF;
 
   -- Generic request.created notification works without a fake CancellationEvent.
   INSERT INTO domain_outbox_events(id,topic,subject_kind,subject_id)
