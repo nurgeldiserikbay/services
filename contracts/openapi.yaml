@@ -206,6 +206,9 @@ paths:
       tags: [Organizations]
       operationId: getOrganizationPublic
       security: []
+      description: >
+        Only ACTIVE organizations are public. DRAFT, SUSPENDED, CLOSED and
+        nonexistent organizations return the same 404 without private owner data.
       parameters:
         - $ref: '#/components/parameters/ResourceId'
       responses:
@@ -854,6 +857,12 @@ paths:
     get:
       tags: [Professionals]
       operationId: getPublicProfessional
+      security: []
+      description: >
+        Public projection only for a PUBLISHED professional profile. DRAFT,
+        PAUSED, ARCHIVED and missing records are indistinguishable 404.
+        Never expose internal person_id, owner user IDs, contact details or
+        private work allocations.
       parameters:
         - name: slug
           in: path
@@ -1334,6 +1343,9 @@ paths:
                         id:
                           type: string
                           format: uuid
+                        slug:
+                          type: [string, 'null']
+                          description: Canonical professional slug when kind=professional; use null for organization and offer.
                         title:
                           type: string
                         is_sponsored:
@@ -1819,6 +1831,7 @@ components:
             format: uuid
     ProfessionalProfile:
       type: object
+      description: Public, published-only projection. Never include person contact identity, private calendar, admin notes or unpublished affiliations.
       required: [id, profession_id, lifecycle_status]
       properties:
         id:
@@ -1832,6 +1845,9 @@ components:
           enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
         slug:
           type: [string, 'null']
+        title:
+          type: [string, 'null']
+          description: Public title chosen by professional; no private person fields.
         version:
           type: integer
           minimum: 1
