@@ -1986,7 +1986,9 @@ components:
         availability_visibility: {type: string, enum: [hidden, busy_only, free_slots]}
     ServiceOffer:
       type: object
-      required: [id, title, seller_kind, seller_id, status, contact_methods]
+      additionalProperties: false
+      description: Public projection of a PUBLISHED offer with eligible public seller. Never return raw contacts JSON, secret contact links, private calendars, or owner identity.
+      required: [id, definition_id, title, seller_kind, seller_id, status, contact_methods, city_id, price_label, availability_visibility]
       properties:
         id: {type: string, format: uuid}
         definition_id: {type: string, format: uuid}
@@ -1996,6 +1998,8 @@ components:
         status: {type: string, enum: [draft, published, paused, archived]}
         contact_methods:
           type: array
+          uniqueItems: true
+          description: Only published channel names, never phone numbers, WhatsApp IDs, secrets or bearer links.
           items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
         city_id: {type: [string, 'null'], format: uuid}
         price_label: {type: [string, 'null']}
