@@ -1405,6 +1405,9 @@ paths:
                           type: string
                         is_sponsored:
                           type: boolean
+                        slug:
+                          type: [string, 'null']
+                          description: Published professional slug for /professionals/{slug}; null otherwise.
                   next_cursor:
                     type: [string, 'null']
   /guest-requests/challenges:
@@ -1654,12 +1657,16 @@ components:
         slug: {type: string, minLength: 3, maxLength: 160}
     Organization:
       type: object
-      required: [id, slug, name, status]
+      required: [id, slug, name, status, offers]
       properties:
         id: {type: string, format: uuid}
         slug: {type: string}
         name: {type: string}
         status: {type: string, enum: [draft, active, suspended, closed]}
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOffer'
     CompanyFieldsPermission:
       type: object
       additionalProperties: false
@@ -1884,9 +1891,18 @@ components:
           items:
             type: string
             format: uuid
+    PublicOffer:
+      type: object
+      additionalProperties: false
+      required: [id, title, delivery_mode, price_label]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string}
+        delivery_mode: {type: string, enum: [at_location, at_customer, online, hybrid]}
+        price_label: {type: [string, 'null']}
     ProfessionalProfile:
       type: object
-      required: [id, profession_id, lifecycle_status]
+      required: [id, profession_id, lifecycle_status, slug, title, offers]
       properties:
         id:
           type: string
@@ -1898,7 +1914,12 @@ components:
           type: string
           enum: [draft, published, paused, hidden, archived, pending_deletion, erased]
         slug:
-          type: [string, 'null']
+          type: string
+        title: {type: [string, 'null']}
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOffer'
         version:
           type: integer
           minimum: 1
