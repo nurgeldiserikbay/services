@@ -1340,6 +1340,122 @@ paths:
                           type: boolean
                   next_cursor:
                     type: [string, 'null']
+  /guest-requests/recovery/challenges:
+    post:
+      tags: [Bookings]
+      operationId: startGuestRequestRecovery
+      summary: Восстановить доступ к гостевой заявке через оригинальный контакт
+      description: >
+        Generic response without contact or request enumeration. Requires
+        independent rate, resend and provider-budget limits. No session/capability
+        is returned at this step and no new ServiceRequest is created.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [channel, contact]
+              properties:
+                channel: {type: string, enum: [sms, email]}
+                contact: {type: string, maxLength: 320}
+      responses:
+        '202':
+          description: Generic challenge initiation response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [challenge_id]
+                properties:
+                  challenge_id: {type: string, format: uuid}
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /guest-requests/recovery/challenges/{id}/verify:
+    post:
+      tags: [Bookings]
+      operationId: verifyGuestRequestRecovery
+      summary: Проверить OTP и открыть ограниченное окно выбора своих заявок
+      description: >
+        Successful verification grants a short-lived recovery session only,
+        not a blanket READ_CANCEL capability. The server resolves candidate
+        requests exclusively from the verified original contact. Web sessions
+        use HttpOnly Secure SameSite cookie and mutations require CSRF protection;
+        native sessions use OS secure storage. No tokens in URL, response logs or analytics.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: {type: string, minLength: 4, maxLength: 12}
+      responses:
+        '200':
+          description: Recovery session established after contact verification
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [recovery_session_expires_at, requests]
+                properties:
+                  recovery_session_expires_at: {type: string, format: date-time}
+                  requests:
+                    type: array
+                    maxItems: 100
+                    description: Only opaque request identifiers belonging to verified contact; paginate beyond the limit.
+                    items: {type: string, format: uuid}
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /guest-requests/recovery/requests/{id}/session:
+    post:
+      tags: [Bookings]
+      operationId: selectRecoveredGuestRequest
+      summary: Выпустить новый READ_CANCEL для одной проверенной заявки
+      description: >
+        Requires the contact-verified recovery session and CSRF protection on
+        web. Request UUID must belong to the verified contact; revalidate
+        request state and ownership, rotate session, and never elevate to MANAGE_SCHEDULE.
+        Response is private no-store; guest capability never appears in URL.
+      security:
+        - webSession: []
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Single request-scoped session established
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [request_id, scope, expires_at]
+                properties:
+                  request_id: {type: string, format: uuid}
+                  scope: {type: string, const: read_cancel}
+                  expires_at: {type: string, format: date-time}
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /guest-requests/challenges:
     post:
       tags: [Bookings]
