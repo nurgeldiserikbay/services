@@ -354,6 +354,11 @@ paths:
       tags: [Professionals]
       operationId: getPublishedServiceOffer
       summary: Публичная услуга с реальным продавцом и доступными каналами
+      description: >
+        Only published offers with an eligible visible seller. Never disclose
+        raw private contacts or return a different seller from the stored
+        ServiceOffer professional/organization XOR. Do not expose inactive
+        locations or unpublished offers. Callers do not need an account.
       security: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
@@ -1643,7 +1648,15 @@ components:
         availability_visibility: {type: string, enum: [hidden, busy_only, free_slots]}
     ServiceOffer:
       type: object
-      required: [id, title, seller_kind, seller_id, status, contact_methods]
+      additionalProperties: false
+      description: >
+        Public projection of one PUBLISHED offer with an eligible published
+        professional or active organization seller. DRAFT/PAUSED/ARCHIVED offers,
+        inactive seller records and inactive locations are indistinguishable 404.
+        Never return raw contacts JSON, owner private identity or availability
+        schedule. contact_methods are allowed published channel names only,
+        not telephone numbers, WhatsApp identifiers, private URLs or tokens.
+      required: [id, definition_id, title, seller_kind, seller_id, status, contact_methods, city_id, price_label, availability_visibility]
       properties:
         id: {type: string, format: uuid}
         definition_id: {type: string, format: uuid}
@@ -1653,6 +1666,11 @@ components:
         status: {type: string, enum: [draft, published, paused, archived]}
         contact_methods:
           type: array
+          uniqueItems: true
+          description: >
+            Published contact channel availability only. Raw contact targets are
+            deliberately omitted until separate consent-filtered public contact
+            projection and action security are formally reviewed.
           items: {type: string, enum: [phone, whatsapp, guest_request, book_slot]}
         city_id: {type: [string, 'null'], format: uuid}
         price_label: {type: [string, 'null']}
