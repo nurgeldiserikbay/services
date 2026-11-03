@@ -127,6 +127,13 @@ BEGIN
   IF (SELECT state::text FROM published_company_professional_views WHERE view_id=company_view_id) <> 'STALE' THEN
     RAISE EXCEPTION 'Company publication was not invalidated on permission change';
   END IF;
+  -- A lagging worker cannot re-publish stale sourceRevision=1 after view becomes 2.
+  did_reject := false;
+  BEGIN
+    UPDATE published_company_professional_views SET state='READY' WHERE view_id=company_view_id;
+  EXCEPTION WHEN check_violation THEN did_reject := true;
+  END;
+  IF NOT did_reject THEN RAISE EXCEPTION 'Stale worker was able to publish old company view'; END IF;
   UPDATE service_requests SET status='DECLINED',version=version+1 WHERE id=corporate_request_id;
   UPDATE affiliations SET status='ENDED',ended_at=now() WHERE id=affiliation_id;
   IF (SELECT state::text FROM published_company_professional_views WHERE view_id=company_view_id) <> 'REVOKED' THEN
