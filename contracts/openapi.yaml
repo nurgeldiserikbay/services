@@ -1432,8 +1432,7 @@ paths:
         request state and ownership, rotate session, and never elevate to MANAGE_SCHEDULE.
         Response is private no-store; guest capability never appears in URL.
       security:
-        - webSession: []
-        - sessionAuth: []
+        - guestRecoverySession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
       responses:
@@ -1588,6 +1587,11 @@ paths:
 
 components:
   securitySchemes:
+    guestRecoverySession:
+      type: apiKey
+      in: cookie
+      name: __Host-services_guest_recovery
+      description: Verified-contact recovery session, not a registered login or blanket request capability. For native clients an equivalent short-lived proof uses a dedicated securely stored bearer flow.
     webSession:
       type: apiKey
       in: cookie
