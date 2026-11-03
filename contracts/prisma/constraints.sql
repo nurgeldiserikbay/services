@@ -416,6 +416,32 @@ CREATE TRIGGER affiliation_publication_revocation
   AFTER UPDATE OF status ON affiliations
   FOR EACH ROW EXECUTE FUNCTION revoke_company_view_on_affiliation_end();
 
+-- A delayed/out-of-order worker must not publish an obsolete revision as READY.
+-- Lock both parent rows to serialize with permission changes and affiliation closure.
+CREATE OR REPLACE FUNCTION guard_published_company_view_ready() RETURNS trigger AS $
+DECLARE
+  actual_revision INTEGER;
+  affiliation_state TEXT;
+BEGIN
+  IF NEW.state = 'READY' THEN
+    SELECT v.revision, a.status::text INTO actual_revision, affiliation_state
+      FROM company_professional_views v
+      JOIN affiliations a ON a.id = v.affiliation_id
+      WHERE v.id = NEW.view_id
+      FOR SHARE OF v, a;
+    IF actual_revision IS NULL OR affiliation_state <> 'ACTIVE'
+       OR NEW.source_revision <> actual_revision THEN
+      RAISE EXCEPTION 'Cannot publish stale or unauthorized company view'
+        USING ERRCODE='23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+CREATE TRIGGER published_company_view_revision_guard
+  BEFORE INSERT OR UPDATE ON published_company_professional_views
+  FOR EACH ROW EXECUTE FUNCTION guard_published_company_view_ready();
+
 ALTER TABLE published_company_professional_views
   ADD CONSTRAINT published_view_revision_and_payload_valid
   CHECK (source_revision > 0 AND (state <> 'READY' OR public_payload IS NOT NULL));
@@ -429,3 +455,13 @@ ALTER TABLE guest_challenges
 -- Cancellation intents remain non-null FK-linked to a parent domain outbox event;
 -- insert event, then two intents, then commit in a SINGLE transaction.
 -- Do NOT move the two-intents constraint to the asynchronous worker.
+
+-- Historical affiliations must be retained for request audit; never hard-delete.
+CREATE OR REPLACE FUNCTION prevent_affiliation_delete() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Affiliation deletion forbidden: end operational link with retained history'
+    USING ERRCODE='23514';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER affiliation_no_hard_delete
+  BEFORE DELETE ON affiliations FOR EACH ROW EXECUTE FUNCTION prevent_affiliation_delete();
