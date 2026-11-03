@@ -24,6 +24,11 @@ enum GuestCapabilityScope {
   READ_CANCEL
   MANAGE_SCHEDULE
 }
+enum GuestChallengePurpose {
+  CREATE_REQUEST
+  RECOVER_REQUEST
+  MANAGE_SCHEDULE
+}
 enum ConsentKind {
   TERMS
   PRIVACY
@@ -428,6 +433,7 @@ model GuestContact {
   verifiedAt      DateTime?       @map("verified_at") @db.Timestamptz(3)
   expiresAt       DateTime        @map("expires_at") @db.Timestamptz(3)
   challenges      GuestChallenge[]
+  recoverySessions GuestRecoverySession[]
   capabilities    GuestCapability[]
   requests        ServiceRequest[]
   notifications   NotificationIntent[]
@@ -439,6 +445,9 @@ model GuestChallenge {
   id             String       @id @default(uuid()) @db.Uuid
   guestContactId String       @map("guest_contact_id") @db.Uuid
   codeHash       String       @map("code_hash")
+  purpose        GuestChallengePurpose @default(CREATE_REQUEST)
+  consumedAt     DateTime?    @map("consumed_at") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   attempts       Int          @default(0)
   expiresAt      DateTime     @map("expires_at") @db.Timestamptz(3)
   guestContact   GuestContact @relation(fields: [guestContactId], references: [id], onDelete: Restrict)
@@ -843,4 +852,21 @@ model NoShowClaim {
   @@unique([requestId, scheduleRevision])
   @@index([status, createdAt])
   @@map("no_show_claims")
+}
+
+
+/** A verified original-contact challenge issues a session that permits only
+ * selecting a request owned by this contact. It is not an account session.
+ * On selecting a request, rotate to a single-request READ_CANCEL capability.
+ */
+model GuestRecoverySession {
+  id             String       @id @default(uuid()) @db.Uuid
+  guestContactId String       @map("guest_contact_id") @db.Uuid
+  tokenHash      String       @unique @map("token_hash") @db.VarChar(128)
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz(3)
+  revokedAt      DateTime?    @map("revoked_at") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  guestContact   GuestContact @relation(fields: [guestContactId], references: [id], onDelete: Restrict)
+  @@index([guestContactId, expiresAt])
+  @@map("guest_recovery_sessions")
 }
