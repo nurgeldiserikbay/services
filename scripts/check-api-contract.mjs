@@ -32,8 +32,7 @@ for(const [path,methodsObj] of Object.entries(api.paths)){
 const op=(route,verb)=>{const x=api.paths[route]?.[verb];assert(x,`Missing required route ${verb} ${route}`);return x};
 const hasSecurity=(operation,id)=>(operation.security??[]).some(x=>Object.prototype.hasOwnProperty.call(x,id));
 const protectedRoutes=[
- ['/me','get'],['/requests','post'],['/requests/{id}/accept','post'],
- ['/requests/{id}/decline','post'],['/requests/{id}/complete','post'],
+ ['/me','get'],['/requests','post'],['/requests/{id}/complete','post'],
  ['/me/saved-items','get'],['/me/reliability','get'],['/auth/logout','post'],
  ['/professional-profiles/{id}/company-views/{organization_id}/permissions','put']
 ];
@@ -42,6 +41,31 @@ for(const [route,verb] of protectedRoutes){
  assert(hasSecurity(operation,'sessionAuth')&&hasSecurity(operation,'webSession'),
    `Protected route should accept bearer and web session: ${verb} ${route}`);
 }
+// First implementation of seller inbox and decisions is bearer-only for
+// native/server callers. Browser cookie support must not be advertised before
+// a separately secured BFF with Origin and CSRF controls is implemented.
+for(const [route,verb] of [
+ ['/me/seller-requests','get'],
+ ['/requests/{id}/accept','post'],
+ ['/requests/{id}/decline','post'],
+]){
+ const operation=op(route,verb);
+ assert(hasSecurity(operation,'sessionAuth')&&!hasSecurity(operation,'webSession'),
+  `Initial seller API must be bearer-only: ${verb} ${route}`);
+}
+for(const route of ['/requests/{id}/accept','/requests/{id}/decline']){
+ const operation=op(route,'post');
+ const params=(operation.parameters??[]).map(resolve);
+ for(const name of ['If-Match','Idempotency-Key']){
+  assert(params.some(p=>p.in==='header'&&p.name===name&&p.required===true),
+   `Seller mutation requires ${name}: ${route}`);
+ }
+ assert(operation.responses?.['200']?.content?.['application/json']?.schema,
+  `Seller decision requires typed response: ${route}`);
+}
+assert(api.components.schemas?.SellerInboxPage,'Missing safe seller inbox schema');
+assert(api.components.schemas?.SellerDecisionResult,'Missing seller decision response schema');
+
 const guestOps=[
  ['/guest-requests','post'],['/requests/{id}','get'],['/requests/{id}/cancel','post']
 ];
