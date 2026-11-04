@@ -924,22 +924,32 @@ paths:
     post:
       tags: [Bookings]
       operationId: acceptSimpleRequest
-      summary: Продавец/уполномоченный оператор принимает заявку (без согласования цены)
+      summary: Продавец принимает заявку без обязательного времени и цены
+      description: >
+        Current implementation: native/server Authorization bearer only. The same-origin
+        browser BFF with HttpOnly session + CSRF/Origin policy is a separate release gate.
+        User and seller resource ACL checked server-side even on idempotent replay.
       security:
         - sessionAuth: []
-        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/SellerDecisionIdempotencyKey'
+        - $ref: '#/components/parameters/SellerDecisionIfMatch'
       responses:
         '200':
-          description: Accepted
+          description: Accepted or identical idempotent replay (no confirmed time implied)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ServiceRequest'
+                $ref: '#/components/schemas/SellerDecisionResult'
+        '400':
+          description: Invalid If-Match, request ID or idempotency key
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Request not found
         '409':
           $ref: '#/components/responses/Conflict'
   /requests/{id}/decline:
@@ -947,17 +957,32 @@ paths:
       tags: [Bookings]
       operationId: declineSimpleRequest
       summary: Продавец отклоняет заявку
+      description: >
+        Native/server bearer-only mutation; company operator scope is not yet enabled.
+        Customer notification is queued transactionally, not sent synchronously.
       security:
         - sessionAuth: []
-        - webSession: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/SellerDecisionIdempotencyKey'
+        - $ref: '#/components/parameters/SellerDecisionIfMatch'
       responses:
         '200':
-          description: Declined
+          description: Declined or identical idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerDecisionResult'
+        '400':
+          description: Invalid If-Match, request ID or idempotency key
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Request not found
+        '409':
+          $ref: '#/components/responses/Conflict'
   /requests/{id}/cancel:
     post:
       tags: [Bookings]
@@ -1846,6 +1871,24 @@ components:
         type: string
         minLength: 8
         maxLength: 128
+    SellerDecisionIfMatch:
+      in: header
+      name: If-Match
+      required: true
+      description: Strong quoted positive request version, e.g. "1"; weak ETags rejected
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]{0,9}"$'
+    SellerDecisionIdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Stable key for one logical seller decision and authenticated principal
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{15,127}$'
   schemas:
     NoShowClaim:
       type: object
@@ -2015,6 +2058,17 @@ components:
         desired_end_at: {type: [string, 'null'], format: date-time}
         note: {type: [string, 'null'], maxLength: 1000}
       description: Seller is resolved from offer by backend, never taken from caller.
+    SellerDecisionResult:
+      type: object
+      additionalProperties: false
+      required: [id, state, version, replayed]
+      properties:
+        id: {type: string, format: uuid}
+        state: {type: string, enum: [accepted, declined]}
+        version: {type: integer, minimum: 1}
+        replayed:
+          type: boolean
+          description: True only when the previous identical decision response is replayed
     ServiceRequest:
       type: object
       required: [id, service_offer_id, seller_kind, seller_id, source_context, state, version]
