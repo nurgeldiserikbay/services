@@ -411,6 +411,45 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+  /me/seller-requests:
+    get:
+      tags: [Bookings]
+      operationId: listOwnSellerRequests
+      summary: Собственные заявки специалиста или организации (без контактов клиента)
+      description: >
+        Native/server Bearer account session only. Resource ownership is checked
+        by backend SQL for personal professional ownership or active company
+        OWNER/ADMIN membership; OPERATOR/AUDITOR denied pending scoped policy.
+        No cookies, public client contact or private request notes.
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: {type: integer, minimum: 1, maximum: 50, default: 20}
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, accepted, declined, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, completed, expired]
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque base64url cursor from previous page
+          schema: {type: string}
+      responses:
+        '200':
+          description: Private resource-scoped request summaries with no-store caching
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerInboxPage'
+        '400':
+          description: Invalid filter or cursor
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /requests:
     post:
       tags: [Bookings]
@@ -2058,6 +2097,32 @@ components:
         desired_end_at: {type: [string, 'null'], format: date-time}
         note: {type: [string, 'null'], maxLength: 1000}
       description: Seller is resolved from offer by backend, never taken from caller.
+    SellerInboxItem:
+      type: object
+      additionalProperties: false
+      required: [id, service_offer_id, title, state, version, seller_kind, seller_id, created_at, scheduled_start_at]
+      properties:
+        id: {type: string, format: uuid}
+        service_offer_id: {type: string, format: uuid}
+        title: {type: string}
+        state:
+          type: string
+          enum: [pending, accepted, declined, cancelled_by_customer, cancelled_by_provider, cancelled_mutual, completed, expired]
+        version: {type: integer, minimum: 1}
+        seller_kind: {type: string, enum: [professional, organization]}
+        seller_id: {type: string, format: uuid}
+        created_at: {type: string, format: date-time}
+        scheduled_start_at: {type: [string, 'null'], format: date-time}
+    SellerInboxPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SellerInboxItem'
+        next_cursor: {type: [string, 'null']}
     SellerDecisionResult:
       type: object
       additionalProperties: false
