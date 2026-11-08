@@ -8,16 +8,16 @@ This section supersedes older CI/unverified labels only for the exact checks lis
 
 | Repository / gate | SHA | Verified result |
 | --- | --- | --- |
-| services docs and contract checks | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Docs build/structure](https://github.com/nurgeldiserikbay/services/actions/runs/42467985158) and [contract + PostgreSQL smoke](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) pass. Reference Prisma/OpenAPI and ephemeral PG16 invariants are validated; production migrations and independent sign-off are not. |
-| services-back main | c46f44c7fa9df62dbf0acf992cf925351f261f7f | [CI fails at typecheck](https://github.com/nurgeldiserikbay/services-back/actions/runs/42486841364) due to two split-line type assertions in a test. [PR #100](https://github.com/nurgeldiserikbay/services-back/pull/100) fixes them and its [full CI run passes](https://github.com/nurgeldiserikbay/services-back/actions/runs/42487586907); the fix is not yet merged. |
+| services docs main | f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1e0f4f1 | [Docs build](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616) and [Pages deployment](https://github.com/nurgeldiserikbay/services/actions/runs/42507877176) pass. Reference Prisma/OpenAPI contract validation remains evidenced at 1acc3af68c75046c19aeee16cf185ef4ec112542 in [run 42467985221](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221). |
+| services-back main | 781d485610a077828dfe602dcdd97a14db58d86c | [Post-merge CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) passes typecheck, build, Prisma validation, migration drift, PostgreSQL 16 migrate/seed/smoke and unit/integration tests. PR #100 is merged. |
 | services-front main | 363e0e8495bc05796cca507ad4a25a65cea03b51 | [Foundation CI passes](https://github.com/nurgeldiserikbay/services-front/actions/runs/42486560324); end-to-end journey and real-device evidence remain outstanding. |
-| services-admin main | 3e916aabb50d43f11e5837bc136d52a13d506cae | [Foundation CI passes](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42486948605); admin stays fail-closed pending MFA, onboarding and role-contract decisions. |
+| services-admin main | 1121883b70134e6a0a52ea0187ee2de2bed20b67 | [Post-merge CI passes](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42506834383); admin stays fail-closed pending MFA, onboarding and role-contract decisions. |
 
 ### Current status adjustments
 
-- **Prisma / PostgreSQL:** reference schema validation and SQL constraints/smoke on temporary PostgreSQL 16 are verified by the services CI run. Production migration, backfill, rollback and race-safety remain unverified.
+- **Prisma / PostgreSQL:** backend main now passes Prisma validation, migration drift check, committed baseline deploy to clean PostgreSQL 16, seed-twice, constraint smoke and DB-backed unit/integration tests. Production-data backfill, rollback, backup restore and dedicated race-safety evidence remain open.
 - **OpenAPI / typed clients:** reference OpenAPI bundle and semantic contract checks pass. Complete production DTO/error coverage and generated-client integration remain unverified.
-- **CI + E2E:** docs, frontend and admin main CI are green; backend main is red until PR #100 is merged and main reruns. No cross-repository production-like E2E evidence is recorded.
+- **CI + E2E:** docs, frontend, admin and backend main CI are green at the listed SHAs. Backend includes a clean PostgreSQL migration/test job. No cross-repository staging E2E or provider-backed OTP delivery evidence is recorded.
 - **G0:** automated reference checks pass, but independent design sign-off is still NOT SIGNED; do not label G0 fully closed.
 
 ## Product decisions preserved
@@ -35,12 +35,12 @@ Canonical decisions: `docs/ru/01-product.md`, ADR-0001..0005. ADR-0006 is **ACCE
 | Guest auth / schedule OTP | INCOMPLETE | ADR-0005 addendum, MANAGE_SCHEDULE Prisma enum | Review new guest schedule challenge/verify OpenAPI routes; implement auth and negative tests |
 | Cancellation history | DESIGN ONLY | CancellationSnapshotRevision, algorithm document | Tie evaluated revision to cancellation audit and test transactions |
 | Request/idempotency | DESIGN ONLY | IdempotencyRecord, HTTP descriptions, test matrix | Specify retention/response redaction/crash recovery, migration and parallel DB tests |
-| Prisma / PostgreSQL | PARTIALLY VERIFIED | Reference schema validation and constraints.sql/smoke.sql pass on ephemeral PostgreSQL 16 in the 2026-11-08 services CI run | Generate/review production migrations; test backfill, rollback and races |
+| Prisma / PostgreSQL | PARTIALLY VERIFIED | Backend main CI validates Prisma, rejects migration drift, deploys the committed baseline to clean PostgreSQL 16, repeats safe seed, runs constraint smoke and DB-backed tests | Exercise production-data backfill/rollback, restore and dedicated concurrency cases |
 | OpenAPI / typed clients | PARTIALLY VERIFIED | OpenAPI bundle and semantic contract checker pass on the 2026-11-08 services CI run | Complete DTO/error coverage; generate clients and verify frontend/backend integration |
 | UX / accessibility / localization | PARTIAL | Prototype, UX mapping | Finalize complete kk/ru, offline/error/guest flow, mobile/a11y review |
 | Deployment security | NOT SIGNED OFF | Security drafts | Threat model, secrets, CSRF/ACL/IDOR, storage, backups, retention, incident review |
 | Country/category launch | NOT SIGNED OFF | Country flags and legal considerations | Select pilot market, external legal/regulatory and privacy review |
-| CI + E2E | PARTIALLY VERIFIED | Docs, frontend and admin CI pass; backend PR #100 passes full CI, but backend main remains red until merge and rerun | Record green backend main plus cross-repository E2E and real-device evidence |
+| CI + E2E | PARTIALLY VERIFIED | Docs, frontend, admin and backend main CI pass at the listed SHAs; backend job includes migration and DB-backed tests | Record provider-backed cross-repository E2E, real-device and staging evidence |
 
 ## Priority blocker queue
 
@@ -74,7 +74,7 @@ For every gate, record:
 
 ## Next recommended bounded work item
 
-Complete the guest schedule OTP challenge/verify OpenAPI schemas, validate accepted ADR-0006, then implement and validate transactional Prisma/SQL migrations in the backend repository. The documentation PR can be merged only after reviewing consistency and CI; do not claim it is fully implementation-ready solely because this file exists.
+Implement and verify provider-backed guest OTP and a cross-repository request-to-seller journey; capture staging evidence, negative ACL cases and retry behavior. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PR #13 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
 
 ## Update — 2026-11-02, guest schedule API draft
 

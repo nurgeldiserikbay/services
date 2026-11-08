@@ -7,7 +7,8 @@
 - [ ] Check all required schedule proposal parameters, guest OTP grant response, errors, authorization and transport enums against the accepted API matrix.
 - [x] Design-reference Prisma schema validation passes in the [technical-contract workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221); this is not a deployed backend migration.
 - [x] Reference schema plus constraints.sql and smoke.sql pass on ephemeral PostgreSQL 16 in the [PostgreSQL invariants job](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221). Production migrations, backfilled data and rollback remain unverified.
-- [ ] SQL concurrency tests demonstrate transaction safety, not just static syntax.
+- [x] Backend CI on [main SHA 781d485](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) applies the committed baseline to clean PostgreSQL 16, checks migration drift, runs seed/smoke and DB-backed integration tests. This does not prove production backfill, rollback or backup restoration.
+- [ ] Dedicated concurrent conflict/race tests demonstrate transaction safety for schedule agreement and cancellation.
 
 ## 2. Business and API synchronization
 - [x] ADR-0006 accepted as product decision on 2026-11-02; technical implementation validation remains separate.
@@ -22,7 +23,7 @@
 - [ ] Review `docs/ru/01–26`, ADRs, maps and diagrams for contradictions; mark resolved decisions as accepted and unresolved as proposed.
 - [ ] Finalize guest schedule/notification/error/offline and profile-company UX including privacy of cross-context busy time.
 - [ ] Complete kk/ru localization contract and accessibility check (keyboard, semantics, touch targets, responsive).
-- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main and this PR. The [PR workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42495476154) passed HTML rebuild, committed-HTML comparison and structure checks on initial PR SHA b978f27fe8a04cc5d1628e3825dd9ff23dd53c24.
+- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main at SHA f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1 in the [docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616). The staging/readiness PR #16 workflow also passed at head SHA f28ebf9bdc5a8b8124e06ce5ad35ecbac36a4e1d: [HTML rebuild, comparison and structure check](https://github.com/nurgeldiserikbay/services/actions/runs/42508459698).
 - [ ] Confirm source links in README and `AGENTS.md` point to current contracts and precedence.
 - [ ] Ensure examples and demo contact data contain no real customer PII or secrets.
 
@@ -40,8 +41,9 @@
 | --- | --- | --- | --- | --- | --- |
 | OpenAPI bundle + semantic checker | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contracts](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (reference contract) | Automated CI | 2026-11-08 |
 | Prisma reference validation | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contracts](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (design schema only) | Automated CI | 2026-11-08 |
-| PostgreSQL 16 invariants/smoke | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [PostgreSQL invariants job](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (ephemeral reference DB; no production migration) | Automated CI | 2026-11-08 |
-| Markdown → HTML build | b978f27fe8a04cc5d1628e3825dd9ff23dd53c24 | [PR docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42495476154) | PASS (HTML rebuild, comparison and structure checks) | Automated CI | 2026-11-08 |
+| PostgreSQL reference invariants/smoke | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contract workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (reference schema constraints/smoke) | Automated CI | 2026-11-08 |
+| Backend baseline migration and DB suite | 781d485610a077828dfe602dcdd97a14db58d86c | [Post-merge backend CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) | PASS (clean PostgreSQL 16 migrate, drift, seed, smoke and unit/integration tests; no production data) | Automated CI | 2026-11-08 |
+| Markdown → HTML build | f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1 | [Current main docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616) | PASS (HTML rebuild, comparison and structure checks) | Automated CI | 2026-11-08 |
 | Security, UX, product sign-offs | — | No independent sign-off evidence recorded | NOT DONE | Product/security/design owners | 2026-11-08 |
 
 ### Stop conditions
@@ -49,9 +51,9 @@ Do not mark documentation ready while a YAML/Prisma parsing error remains, ADR-0
 
 ## Кто выполняет оставшиеся действия
 
-**Автоматически в GitHub Actions (без участия владельца):** `.github/workflows/contracts.yml` уже содержит Prisma validate, Redocly bundle, API contract checker, одноразовый PostgreSQL 16, SQL constraints и smoke.sql. В этот PR добавлен запуск workflow при изменении скрипта проверки API. Результат считается подтверждённым только после зелёного workflow run на конкретном коммите.
+**Автоматически в GitHub Actions (без участия владельца):** `.github/workflows/contracts.yml` проверяет reference Prisma/OpenAPI и SQL invariants. Backend main workflow дополнительно выполняет `prisma migrate deploy`, migration-drift check, seed, PostgreSQL smoke и DB-backed integration suite на временном PostgreSQL 16. Результат подтверждён только для точных SHA и workflow runs, указанных выше; production restore/backfill этим не проверены.
 
-**Разработчик / ИИ-агент:** устранить ошибки CI, проверить и зафиксировать соответствие схем, расширить тесты на гонки, обновить и пересобрать документацию, вынести PR на ревью. От пользователя не требуются ручные команды npm, psql или Prisma.
+**Разработчик / ИИ-агент:** держать CI зелёным, закрыть contract gaps, добавить dedicated race tests, проверить схему/SQL/API согласованность, обновить и пересобрать документацию, вынести PR на ревью. От пользователя не требуются ручные команды npm, psql или Prisma.
 
 **Владелец продукта / launch owners:** ADR-0006 уже принят как продуктовая политика; её техническая реализация и проверки остаются открытыми. До выпуска нужно выбрать пилотный рынок и подтвердить применимые условия/политику. Юридическое заключение, реальные провайдеры и внешние настройки должны быть подтверждены соответствующими владельцами.
 

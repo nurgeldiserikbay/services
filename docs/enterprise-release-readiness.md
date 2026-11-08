@@ -6,36 +6,36 @@ Status: **NOT RELEASE-READY**. This register records current CI evidence and ver
 
 | Repository | Current main SHA | Latest main CI | Result |
 | --- | --- | --- | --- |
-| services | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Docs build](https://github.com/nurgeldiserikbay/services/actions/runs/42467985158), [contract and PostgreSQL checks](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS: generated HTML is current; OpenAPI bundle/semantic checks, reference Prisma validation, ephemeral PostgreSQL constraints and smoke pass. This validates design artifacts, not production migrations. |
-| services-back | c46f44c7fa9df62dbf0acf992cf925351f261f7f | [Main CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42486841364) | FAIL: TypeScript parsing stops at test/guest-verified-request-flow.test.ts. [PR #100](https://github.com/nurgeldiserikbay/services-back/pull/100) fixes the two assertions; its [full CI run](https://github.com/nurgeldiserikbay/services-back/actions/runs/42487586907) passes, but the fix is not yet merged to main. |
+| services | f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1e0f4f1 | [Latest docs build](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616), [latest Pages deployment](https://github.com/nurgeldiserikbay/services/actions/runs/42507877176) | PASS: generated HTML matches Markdown and Pages deploy succeeds. The separate reference contract checks remain on SHA 1acc3af68c75046c19aeee16cf185ef4ec112542; they are not production SDK or deployment proof. |
+| services-back | 781d485610a077828dfe602dcdd97a14db58d86c | [Post-merge CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) | PASS: typecheck, build, Prisma validation, migration drift check, PostgreSQL 16 migrate/seed/smoke and unit/integration tests. This is a clean ephemeral database run, not production backfill, restore or rollback evidence. |
 | services-front | 363e0e8495bc05796cca507ad4a25a65cea03b51 | [Frontend foundation CI](https://github.com/nurgeldiserikbay/services-front/actions/runs/42486560324) | PASS for repository CI gates; this is not full product E2E or mobile-device acceptance. |
-| services-admin | 3e916aabb50d43f11e5837bc136d52a13d506cae | [Admin foundation CI](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42486948605) | PASS for repository CI gates; privileged administration remains fail-closed and is not a released workflow. |
+| services-admin | 1121883b70134e6a0a52ea0187ee2de2bed20b67 | [Post-merge CI](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42506834383) | PASS: typecheck, tests and build; privileged admin journey and mounted moderation remain unverified. |
 
-The services contract workflow validates the reference Prisma schema, bundles the OpenAPI draft, runs the API semantic checker, applies constraints.sql to an ephemeral PostgreSQL 16 database, and executes smoke.sql. It does not run production migrations against production-like data, prove transaction races, or provide independent design sign-off.
+The services contract workflow validated the reference Prisma schema, OpenAPI bundle and semantic checks, and SQL constraints/smoke on ephemeral PostgreSQL 16 at the recorded reference SHA. Backend CI now also applies the committed baseline through Prisma Migrate to a clean PostgreSQL 16 service, checks drift, repeats the safe geography seed, runs the constraint smoke and unit/integration suite. Neither workflow proves production backfill/rollback, backup restoration, cross-repository E2E or independent sign-off.
 
 ## Readiness by release gate
 
 | Gate | Status | What is established | What remains |
 | --- | --- | --- | --- |
-| G0 — product, architecture and contracts | **PARTIALLY VERIFIED** | Accepted product decisions are documented; current docs build, contract checks, reference Prisma validation and PostgreSQL smoke pass on the services SHA above. | Independent design review/sign-off; complete contract and UX contradiction review; production migration/backfill and concurrency evidence. |
+| G0 — product, architecture and contracts | **PARTIALLY VERIFIED** | Accepted product decisions are documented; current docs build passes, reference contract checks pass at their recorded SHA, and backend baseline migration/PG16 smoke pass on current backend main. | Independent design review/sign-off; complete contract and UX contradiction review; production-like backfill/rollback and dedicated concurrency evidence. |
 | G1 — identity and platform foundation | **IN PROGRESS** | Backend, frontend and admin code and CI exist. | Demonstrate registered-account login/logout, session rotation/revocation, CSRF and end-to-end ACL in a real environment. |
 | G2 — public catalog and pages | **IN PROGRESS** | Search and public-page code is present; frontend CI is green. | Verify a complete search → profile/offer journey against backend API and real database, including privacy/cache behavior and mobile UX. |
-| G3 — requests, availability and reviews | **IN PROGRESS** | Backend domain and database tests exist; PR #100 fixes the currently failing main typecheck. | Merge/retest the backend fix; verify guest OTP, seller inbox, accept/decline, status, idempotency, notifications, schedule agreement and cancellation end-to-end. |
+| G3 — requests, availability and reviews | **IN PROGRESS** | Backend main CI passes after PR #100, including DB-backed unit/integration tests. | Verify guest OTP with a configured delivery provider and the complete guest/customer-to-seller journey across web, API and database; prove schedule agreement, idempotency and notification delivery end-to-end. |
 | G4 — trust, moderation and operations | **BLOCKED** | Admin shell and backend authorization foundations remain fail-closed. | Approve and implement MFA/onboarding and reconcile four backend roles with six canonical admin roles; complete moderation/audit APIs, notification delivery, accessibility, security and restore evidence. |
 | G5 — limited pilot | **NOT STARTED** | No pilot release evidence reviewed. | Select market/category, obtain legal/privacy sign-off, configure providers/hosting/monitoring/support, run load and real-device acceptance, and document rollback/restore. |
 
 ## Release blockers
 
-- Backend main must return to green after PR #100 is reviewed and merged.
+- Cross-repository guest/customer-to-seller E2E with real configured OTP delivery has not been demonstrated.
 - A complete registered-account and seller journey has not been demonstrated across backend, web and database.
 - Production OTP/email/SMS providers, notification delivery, session recovery and abuse controls are not verified.
 - Admin MFA, staff onboarding/recovery, canonical role reconciliation and operational moderation/audit workflows are not complete.
-- No production-like migration/backfill, backup restore drill, incident runbook, load report, accessibility/mobile acceptance, or deployment evidence has been reviewed.
+- No production data backfill/rollback, backup restore drill, incident runbook, load report, accessibility/mobile acceptance, or staging deployment evidence has been reviewed.
 - Pilot-market legal, privacy, regulated-category and data-residency approval is outstanding.
 
 ## Next sequence
 
-1. Review and merge the green backend syntax-fix PR, then verify a green backend main run.
+1. Configure and verify guest OTP delivery and complete guest/customer-to-seller staging journeys, including authorization failures and retries.
 2. Record exact end-to-end evidence for registered sign-in and the seller request lifecycle across all four repository SHAs.
 3. Close the remaining contract, security, operations, UX and pilot gates with named approvers and reproducible evidence.
 
