@@ -33,7 +33,7 @@ Before code generation call these `OPEN TECH`, **not** implicit authorisation to
 1. `RequestBody/Response` completeness of legacy `/bookings` and `/guest-inquiries` vs canonical `/requests`: legacy aliases **must not** become two independent domain tables.
 2. Exact authentication interface for Next.js cookie/session and native Capacitor token handling, refresh/revocation and CSRF.
 3. Reusable `Error` response on every operation including 401/403/404/409/422/429 and rate-limit headers.
-4. Cursor pagination + consistent envelopes for public search and notification/history pages.
+4. Consistent envelopes and cursor pagination for notification/history pages. Public search uses an opaque keyset cursor anchored to its deterministic `(title, kind, id)` ordering, with a maximum page size of 50.
 5. Country/language/city alias and regulated profession publication permissions.
 6. Company master view list, approval and revocation, content field schemas, safe media URLs, current revision/If-Match.
 7. ServiceExperience customer confirmation, vendor cannot self-certify review; anti-fraud and moderator appeals.
