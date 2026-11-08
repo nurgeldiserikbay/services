@@ -1430,6 +1430,15 @@ paths:
           schema:
             type: string
             enum: [all, professional, organization, offer]
+        - name: profession_id
+          in: query
+          description: >
+            Restrict results to published offers mapped to this profession.
+            Professional and organization results are included only when that
+            seller has at least one matching published offer.
+          schema:
+            type: string
+            format: uuid
         - name: city_id
           in: query
           schema:
