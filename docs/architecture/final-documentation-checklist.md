@@ -23,7 +23,7 @@
 - [ ] Review `docs/ru/01–26`, ADRs, maps and diagrams for contradictions; mark resolved decisions as accepted and unresolved as proposed.
 - [ ] Finalize guest schedule/notification/error/offline and profile-company UX including privacy of cross-context busy time.
 - [ ] Complete kk/ru localization contract and accessibility check (keyboard, semantics, touch targets, responsive).
-- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main at SHA f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1 in the [docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616). The staging/readiness PR #16 workflow also passed at head SHA f28ebf9bdc5a8b8124e06ce5ad35ecbac36a4e1d: [HTML rebuild, comparison and structure check](https://github.com/nurgeldiserikbay/services/actions/runs/42508459698).
+- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main at SHA bfa7dd2575140b452c59de510a994c424be4bcf9 in the [docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42509373255). PR #16 was merged after its documentation checks passed.
 - [ ] Confirm source links in README and `AGENTS.md` point to current contracts and precedence.
 - [ ] Ensure examples and demo contact data contain no real customer PII or secrets.
 
@@ -33,7 +33,7 @@
 - [x] Concurrency and schedule test scenarios are documented.
 - [ ] Confirm owners and acceptance evidence for each BE/WEB/ADM task.
 - [ ] Record passing GitHub Actions for final PR SHA and independent reviewer sign-off.
-- [ ] Merge documentation PR only after review and passing checks; no self-merge.
+- [x] PR #16 staging/readiness documentation merged after its documentation CI passed; this does not constitute production sign-off.
 
 ## Evidence log
 
@@ -43,7 +43,7 @@
 | Prisma reference validation | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contracts](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (design schema only) | Automated CI | 2026-11-08 |
 | PostgreSQL reference invariants/smoke | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contract workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (reference schema constraints/smoke) | Automated CI | 2026-11-08 |
 | Backend baseline migration and DB suite | 781d485610a077828dfe602dcdd97a14db58d86c | [Post-merge backend CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) | PASS (clean PostgreSQL 16 migrate, drift, seed, smoke and unit/integration tests; no production data) | Automated CI | 2026-11-08 |
-| Markdown → HTML build | f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1 | [Current main docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616) | PASS (HTML rebuild, comparison and structure checks) | Automated CI | 2026-11-08 |
+| Markdown → HTML build | bfa7dd2575140b452c59de510a994c424be4bcf9 | [Current main docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42509373255) | PASS (HTML rebuild, comparison and structure checks) | Automated CI | 2026-11-08 |
 | Security, UX, product sign-offs | — | No independent sign-off evidence recorded | NOT DONE | Product/security/design owners | 2026-11-08 |
 
 ### Stop conditions
