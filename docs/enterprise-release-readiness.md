@@ -20,13 +20,13 @@ The services contract workflow validated the reference Prisma schema, OpenAPI bu
 | G0 — product, architecture and contracts | **PARTIALLY VERIFIED** | Accepted product decisions are documented; current docs build passes, reference contract checks pass at their recorded SHA, and backend baseline migration/PG16 smoke pass on current backend main. | Independent design review/sign-off; complete contract and UX contradiction review; production-like backfill/rollback and dedicated concurrency evidence. |
 | G1 — identity and platform foundation | **IN PROGRESS** | Backend, frontend and admin code and CI exist. | Demonstrate registered-account login/logout, session rotation/revocation, CSRF and end-to-end ACL in a real environment. |
 | G2 — public catalog and pages | **IN PROGRESS** | Search and public-page code is present; frontend CI is green. | Verify a complete search → profile/offer journey against backend API and real database, including privacy/cache behavior and mobile UX. |
-| G3 — requests, availability and reviews | **IN PROGRESS** | Backend main CI passes; open PR #109 adds account schedule runtime and request-bound guest authorization; latest guest commit awaits CI. | Validate/merge PR #109; verify configured OTP delivery and request-to-seller journey across web, API and database; prove race behavior and notification delivery end-to-end. |
+| G3 — requests, availability and reviews | **IN PROGRESS** | Backend main CI passes; open PR #109 adds account schedule runtime and request-bound guest authorization; latest guest commit passed full CI run 42517736326. | Validate/merge PR #109; verify configured OTP delivery and request-to-seller journey across web, API and database; prove race behavior and notification delivery end-to-end. |
 | G4 — trust, moderation and operations | **BLOCKED** | Admin shell and backend authorization foundations remain fail-closed. | Approve and implement MFA/onboarding and reconcile four backend roles with six canonical admin roles; complete moderation/audit APIs, notification delivery, accessibility, security and restore evidence. |
 | G5 — limited pilot | **NOT STARTED** | No pilot release evidence reviewed. | Select market/category, obtain legal/privacy sign-off, configure providers/hosting/monitoring/support, run load and real-device acceptance, and document rollback/restore. |
 
 ## Release blockers
 
-- Account and guest schedule runtime are in unmerged PR #109; latest guest authorization changes await CI/PostgreSQL validation.
+- Account and guest schedule runtime are in unmerged PR #109; latest guest authorization changes passed full CI run 42517736326.
 - Cross-repository guest/customer-to-seller E2E with real configured OTP delivery has not been demonstrated.
 - A complete registered-account and seller journey has not been demonstrated across backend, web and database.
 - Production OTP/email/SMS providers, notification delivery, session recovery and abuse controls are not verified.
@@ -36,7 +36,7 @@ The services contract workflow validated the reference Prisma schema, OpenAPI bu
 
 ## Next sequence
 
-1. Validate and review backend PR #109 head `bc30bc1b3d8b1743054e801913ba91852df225d9`; then verify configured OTP delivery plus customer-to-seller staging journeys, including authorization failures and retries.
+1. Validate and review backend PR #109 head `589a13dc17d7948f4b04aa968774fd4c2aac3b7a`; then verify configured OTP delivery plus customer-to-seller staging journeys, including authorization failures and retries.
 2. Record exact end-to-end evidence for registered sign-in and the seller request lifecycle across all four repository SHAs.
 3. Close the remaining contract, security, operations, UX and pilot gates with named approvers and reproducible evidence.
 
