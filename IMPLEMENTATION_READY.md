@@ -16,7 +16,7 @@ This section supersedes older CI/unverified labels only for the exact checks lis
 ### Current status adjustments
 
 - **Prisma / PostgreSQL:** backend main now passes Prisma validation, migration drift check, committed baseline deploy to clean PostgreSQL 16, seed-twice, constraint smoke and DB-backed unit/integration tests. Production-data backfill, rollback, backup restore and dedicated race-safety evidence remain open.
-- **Schedule agreement:** ADR-0006 is accepted. Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109) adds account and guest schedule flows. Account-only CI run 42515494709 passed; guest changes at head `bc30bc1b3d8b1743054e801913ba91852df225d9` await CI and PostgreSQL validation. The PR is not merged; provider-backed OTP, cross-repository E2E and release sign-off remain open.
+- **Schedule agreement:** ADR-0006 is accepted. Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109) adds account and guest schedule flows. Account-only CI run 42515494709 passed; guest changes at head `589a13dc17d7948f4b04aa968774fd4c2aac3b7a` passed full CI run [42517736326](https://github.com/nurgeldiserikbay/services-back/actions/runs/42517736326). The PR is not merged; provider-backed OTP, guest negative/race coverage, cross-repository E2E and release sign-off remain open.
 - **OpenAPI / typed clients:** reference OpenAPI bundle and semantic contract checks pass. Complete production DTO/error coverage and generated-client integration remain unverified.
 - **CI + E2E:** docs, frontend, admin and backend main CI are green at the listed SHAs. Backend includes a clean PostgreSQL migration/test job. No cross-repository staging E2E or provider-backed OTP delivery evidence is recorded.
 - **G0:** automated reference checks pass, but independent design sign-off is still NOT SIGNED; do not label G0 fully closed.
@@ -32,8 +32,8 @@ Canonical decisions: `docs/ru/01-product.md`, ADR-0001..0005. ADR-0006 is **ACCE
 | Gate | Status | Evidence available | Blocking next action |
 | --- | --- | --- | --- |
 | Domain decisions / simple requests | DESIGNED | ADR-0003/0004, state chapters | Reconcile old Booking/Inquiry language in remaining chapters |
-| Schedule agreement | ACCOUNT PATH CI-VERIFIED; GUEST PATH IN OPEN PR | ADR-0006; backend PR #109 head `bc30bc1b3d8b1743054e801913ba91852df225d9` | Validate latest CI/migration and guest negative cases; close provider, rate-limit, race, E2E and release gates |
-| Guest auth / schedule OTP | IMPLEMENTED IN OPEN PR; VALIDATION PENDING | Backend PR #109 adds request-bound challenge/verify and schedule authorization | Validate migration/negative DB cases; verify provider-backed OTP, guest UX and security review |
+| Schedule agreement | ACCOUNT PATH CI-VERIFIED; GUEST PATH IN OPEN PR | ADR-0006; backend PR #109 head `589a13dc17d7948f4b04aa968774fd4c2aac3b7a` | Validate latest CI/migration and guest negative cases; close provider, rate-limit, race, E2E and release gates |
+| Guest auth / schedule OTP | IMPLEMENTED IN OPEN PR; BACKEND CI PASSED | Backend PR #109 head `589a13dc17d7948f4b04aa968774fd4c2aac3b7a`; CI run 42517736326 | Add guest-specific negative/race coverage; verify provider-backed OTP, guest UX and security review |
 | Cancellation history | DESIGN ONLY | CancellationSnapshotRevision, algorithm document | Tie evaluated revision to cancellation audit and test transactions |
 | Request/idempotency | DESIGN ONLY | IdempotencyRecord, HTTP descriptions, test matrix | Specify retention/response redaction/crash recovery, migration and parallel DB tests |
 | Prisma / PostgreSQL | PARTIALLY VERIFIED | Backend main CI validates Prisma, rejects migration drift, deploys the committed baseline to clean PostgreSQL 16, repeats safe seed, runs constraint smoke and DB-backed tests | Exercise production-data backfill/rollback, restore and dedicated concurrency cases |
@@ -75,11 +75,11 @@ For every gate, record:
 
 ## Next recommended bounded work item
 
-Validate backend PR #109 head `bc30bc1b3d8b1743054e801913ba91852df225d9` with CI, migration and negative DB cases; then verify provider-backed OTP and cross-repository request-to-seller staging, including ACL, rate limits and retries. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PRs #13 and #16 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
+Validate backend PR #109 head `589a13dc17d7948f4b04aa968774fd4c2aac3b7a` with CI, migration and negative DB cases; then verify provider-backed OTP and cross-repository request-to-seller staging, including ACL, rate limits and retries. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PRs #13 and #16 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
 
 ## Update — 2026-11-08, guest schedule backend implementation
 
-The open backend PR #109 now contains request-bound OTP issuance/verification and `MANAGE_SCHEDULE` checks on schedule writes. Latest head `bc30bc1b3d8b1743054e801913ba91852df225d9` awaits CI; the previously passing run covers the account-only predecessor. Provider delivery remains disabled unless an approved adapter and deployment gates are configured.
+The open backend PR #109 now contains request-bound OTP issuance/verification and `MANAGE_SCHEDULE` checks on schedule writes. Latest head `589a13dc17d7948f4b04aa968774fd4c2aac3b7a` passed full CI run [42517736326](https://github.com/nurgeldiserikbay/services-back/actions/runs/42517736326). Provider delivery remains disabled unless an approved adapter and deployment gates are configured.
 
 ## Update — 2026-11-02, guest schedule API draft
 
