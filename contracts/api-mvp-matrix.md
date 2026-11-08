@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | Identity | `GET /me`, `GET/POST /me/professional-profiles`, lifecycle and profile edit, saved items, reliability | Real auth/register/OTP/session and consent endpoints, cookie/mobile split |
 | Geo/taxonomy | `GET /geo/countries, /geo/areas, /geo/cities, /geo/suggestion, /professions, /service-definitions` | Pagination, i18n aliases and disambiguation, live country/category flags |
-| Discovery | `GET /search`, `GET /professionals/{slug}`, `GET /organizations/{id}`, `GET /service-offers/{id}` | SEO/public DTO whitelists, filters, stable cursor, anti-spam/ranking |
+| Discovery | `GET /search` (including `profession_id`), `GET /professionals/{slug}`, `GET /organizations/{id}`, `GET /service-offers/{id}` | SEO/public DTO whitelists, filter semantics, stable cursor, anti-spam/ranking |
 | Companies | `POST /organizations`, affiliation invites, corporate master public view and two-sided edit permissions | Confirmation/revocation/role operations, location endpoints, claims and operator ACL |
 | Offers | `POST /service-offers`, `GET/PATCH /service-offers/{id}`, cancellation policy | Publish/archive/assignment flows, verified contact and media/country rules |
 | Requests | `POST /requests`, `GET /requests/{id}`, `GET /me/requests`, accept/decline/cancel/complete/schedule | Full state guards, events, guest cancellation linked to unified model |
