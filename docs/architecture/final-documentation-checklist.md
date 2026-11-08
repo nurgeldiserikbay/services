@@ -23,7 +23,7 @@
 - [ ] Review `docs/ru/01–26`, ADRs, maps and diagrams for contradictions; mark resolved decisions as accepted and unresolved as proposed.
 - [ ] Finalize guest schedule/notification/error/offline and profile-company UX including privacy of cross-context busy time.
 - [ ] Complete kk/ru localization contract and accessibility check (keyboard, semantics, touch targets, responsive).
-- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main at SHA f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1 in the [docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616). Earlier documentation changes were merged in PR #13; this PR still needs its own green check.
+- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main at SHA f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1 in the [docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616). The staging/readiness PR #16 workflow also passed at head SHA f28ebf9bdc5a8b8124e06ce5ad35ecbac36a4e1d: [HTML rebuild, comparison and structure check](https://github.com/nurgeldiserikbay/services/actions/runs/42508459698).
 - [ ] Confirm source links in README and `AGENTS.md` point to current contracts and precedence.
 - [ ] Ensure examples and demo contact data contain no real customer PII or secrets.
 
