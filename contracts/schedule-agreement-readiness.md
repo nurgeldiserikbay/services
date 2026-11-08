@@ -1,7 +1,14 @@
 # Schedule agreement — integration readiness checklist
 
-Status: **PROPOSED, not implemented**, 2026-11-02.
+Status: **ACCEPTED as a product rule; runtime API not implemented**, evidence updated 2026-11-08.
 References: ADR-0006, ADR-0004, `contracts/openapi.yaml`, `contracts/prisma/schema.prisma`.
+
+## Latest implementation evidence — 2026-11-08
+
+- Backend main `781d485610a077828dfe602dcdd97a14db58d86c` passes the [post-merge CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030): Prisma validation and migration-drift check, clean PostgreSQL 16 migration, safe seed, constraint smoke and unit/integration suite.
+- The committed backend schema and baseline migration contain `ScheduleProposal`, `CancellationSnapshotRevision`, request schedule reconciliation fields and the one-active-proposal database constraint. This verifies persisted structures and migration execution, not schedule-agreement behavior.
+- Backend source currently has no `schedule-proposals` HTTP handlers for propose, confirm or decline. The routes in `contracts/openapi.yaml` remain design-only. Guest `MANAGE_SCHEDULE` issuance/verification is also not implemented as a schedule API flow.
+- Therefore ADR-0006 is **product-accepted**, database structures are **migration-verified**, and schedule-agreement runtime is **not implemented**. Do not close TECH-03/04 or enable automatic schedule-based penalties.
 
 ## Contract snapshot
 - Prisma `ScheduleProposal` stores request, revision, initiator, proposed UTC timestamps, IANA timezone, status, resolver.
@@ -36,8 +43,8 @@ Before merge into implementation repo: validate OpenAPI 3.1, Prisma format/valid
 
 ## Reviewed against the 2026-11-02 feature branch
 
-Documented: new `MANAGE_SCHEDULE` enum, proposed ADR-0005 guest re-verification addendum, versioned schedule proposal, immutable cancellation history, flag to suppress penalties during seller reschedules, and UTC cancellation deadline algorithm. **Not proven**: migrations, CI, real PostgreSQL tests, full guest schedule issuance API, auth threat model, client behavior and external legal requirements. Review and reconcile these before calling TECH-03/04 complete.
+Documented and partly database-verified: `MANAGE_SCHEDULE` enum, proposed ADR-0005 guest re-verification addendum, versioned schedule proposal, immutable cancellation history, flag to suppress penalties during seller reschedules, and UTC cancellation deadline algorithm. Backend main CI now validates and deploys committed migrations to clean PostgreSQL 16 and runs DB-backed tests. **Still not proven**: schedule proposal/confirm/decline runtime handlers, guest schedule capability issuance, end-to-end authorization, auth threat model, client behavior and external legal requirements. Do not call TECH-03/04 complete.
 
 ## Correction after OpenAPI YAML fix (2026-11-02)
 
-The broken `RequestVersion`/`IdempotencyKey` YAML parameter section was repaired in commit `1cf24f60`. Contract checker now expects challenge/verify routes and schedule write preconditions, but passing Redocly/Prisma/SQL CI on the corrected commit is **not yet recorded**. The former description 'missing guest endpoints' is superseded by this note.
+The broken `RequestVersion`/`IdempotencyKey` YAML parameter section was repaired in commit `1cf24f60`. The contract checker expects challenge/verify routes and schedule write preconditions. Reference OpenAPI/Prisma/SQL checks passed at services SHA 1acc3af68c75046c19aeee16cf185ef4ec112542 in [workflow 42467985221](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221); backend migration and PostgreSQL tests passed later at backend SHA 781d485610a077828dfe602dcdd97a14db58d86c in [workflow 42506854030](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030). These validate the respective design files and database migration, not mounted schedule routes or guest OTP flow.
