@@ -16,7 +16,7 @@ This section supersedes older CI/unverified labels only for the exact checks lis
 ### Current status adjustments
 
 - **Prisma / PostgreSQL:** backend main now passes Prisma validation, migration drift check, committed baseline deploy to clean PostgreSQL 16, seed-twice, constraint smoke and DB-backed unit/integration tests. Production-data backfill, rollback, backup restore and dedicated race-safety evidence remain open.
-- **Schedule agreement:** ADR-0006 is accepted. Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109) implements propose/confirm/decline for registered-account requests and its [full CI run](https://github.com/nurgeldiserikbay/services-back/actions/runs/42515494709) passes. The draft PR is not merged; guest `MANAGE_SCHEDULE`, cross-repository E2E and release sign-off remain open.
+- **Schedule agreement:** ADR-0006 is accepted. Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109) adds account and guest schedule flows. Account-only CI run 42515494709 passed; guest changes at head `bc30bc1b3d8b1743054e801913ba91852df225d9` await CI and PostgreSQL validation. The PR is not merged; provider-backed OTP, cross-repository E2E and release sign-off remain open.
 - **OpenAPI / typed clients:** reference OpenAPI bundle and semantic contract checks pass. Complete production DTO/error coverage and generated-client integration remain unverified.
 - **CI + E2E:** docs, frontend, admin and backend main CI are green at the listed SHAs. Backend includes a clean PostgreSQL migration/test job. No cross-repository staging E2E or provider-backed OTP delivery evidence is recorded.
 - **G0:** automated reference checks pass, but independent design sign-off is still NOT SIGNED; do not label G0 fully closed.
@@ -32,8 +32,8 @@ Canonical decisions: `docs/ru/01-product.md`, ADR-0001..0005. ADR-0006 is **ACCE
 | Gate | Status | Evidence available | Blocking next action |
 | --- | --- | --- | --- |
 | Domain decisions / simple requests | DESIGNED | ADR-0003/0004, state chapters | Reconcile old Booking/Inquiry language in remaining chapters |
-| Schedule agreement | ACCEPTED / ACCOUNT PATH CI-VERIFIED ON DRAFT PR | ADR-0006; backend PR #109 and passing CI run 42515494709 | Review/merge PR #109 after docs sync; close guest capability, rate-limit, race, E2E and release gates |
-| Guest auth / schedule OTP | INCOMPLETE | ADR-0005 addendum, MANAGE_SCHEDULE Prisma enum | Review new guest schedule challenge/verify OpenAPI routes; implement auth and negative tests |
+| Schedule agreement | ACCOUNT PATH CI-VERIFIED; GUEST PATH IN OPEN PR | ADR-0006; backend PR #109 head `bc30bc1b3d8b1743054e801913ba91852df225d9` | Validate latest CI/migration and guest negative cases; close provider, rate-limit, race, E2E and release gates |
+| Guest auth / schedule OTP | IMPLEMENTED IN OPEN PR; VALIDATION PENDING | Backend PR #109 adds request-bound challenge/verify and schedule authorization | Validate migration/negative DB cases; verify provider-backed OTP, guest UX and security review |
 | Cancellation history | DESIGN ONLY | CancellationSnapshotRevision, algorithm document | Tie evaluated revision to cancellation audit and test transactions |
 | Request/idempotency | DESIGN ONLY | IdempotencyRecord, HTTP descriptions, test matrix | Specify retention/response redaction/crash recovery, migration and parallel DB tests |
 | Prisma / PostgreSQL | PARTIALLY VERIFIED | Backend main CI validates Prisma, rejects migration drift, deploys the committed baseline to clean PostgreSQL 16, repeats safe seed, runs constraint smoke and DB-backed tests | Exercise production-data backfill/rollback, restore and dedicated concurrency cases |
@@ -47,7 +47,7 @@ Canonical decisions: `docs/ru/01-product.md`, ADR-0001..0005. ADR-0006 is **ACCE
 
 ### P0 — close before implementation of booking/schedule domain
 1. Review and merge backend PR #109 for account schedule agreement after docs/contract sync. Confirmed time must have demonstrated mutual assent; `desired_start_at`, a seller-only PATCH or unverified telephone note never authorizes automatic customer penalty.
-2. The proposed guest OTP routes for `MANAGE_SCHEDULE` are now in OpenAPI. Implement issuance/verification securely and test negative flows; `READ_CANCEL` still cannot confirm time.
+2. Guest `MANAGE_SCHEDULE` issuance/verification and schedule authorization are implemented in PR #109; validate the new migration and negative flows. `READ_CANCEL` remains insufficient.
 3. Make cancellation deadline evaluation auditable, including rule revision, algorithm version, effective deadline, verified agreement and penalty suspension on seller-reschedule.
 4. Specify atomic idempotency ledger lifetime and safe crash recovery; commit cancellation + release busy + event + **two logical notification intents** in one transaction.
 5. Validate actual Prisma/SQL/OpenAPI syntax and implement negative integration tests, including two concurrent acceptances, reschedule vs cancel and guest ACL.
@@ -75,7 +75,11 @@ For every gate, record:
 
 ## Next recommended bounded work item
 
-Complete guest `MANAGE_SCHEDULE` issuance/verification against ADR-0005/0006, then verify provider-backed guest OTP and a cross-repository request-to-seller journey; capture staging evidence, negative ACL cases, rate limits and retry behavior. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PRs #13 and #16 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
+Validate backend PR #109 head `bc30bc1b3d8b1743054e801913ba91852df225d9` with CI, migration and negative DB cases; then verify provider-backed OTP and cross-repository request-to-seller staging, including ACL, rate limits and retries. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PRs #13 and #16 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
+
+## Update — 2026-11-08, guest schedule backend implementation
+
+The open backend PR #109 now contains request-bound OTP issuance/verification and `MANAGE_SCHEDULE` checks on schedule writes. Latest head `bc30bc1b3d8b1743054e801913ba91852df225d9` awaits CI; the previously passing run covers the account-only predecessor. Provider delivery remains disabled unless an approved adapter and deployment gates are configured.
 
 ## Update — 2026-11-02, guest schedule API draft
 
