@@ -22,7 +22,7 @@
 - [ ] Review `docs/ru/01–26`, ADRs, maps and diagrams for contradictions; mark resolved decisions as accepted and unresolved as proposed.
 - [ ] Finalize guest schedule/notification/error/offline and profile-company UX including privacy of cross-context busy time.
 - [ ] Complete kk/ru localization contract and accessibility check (keyboard, semantics, touch targets, responsive).
-- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main in the [docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42467985158), services SHA 1acc3af68c75046c19aeee16cf185ef4ec112542. This PR still needs its own green workflow run.
+- [x] `node scripts/build-site.mjs` and `node scripts/check-docs.mjs` pass on current main and this PR. The [PR workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42495476154) passed HTML rebuild, committed-HTML comparison and structure checks on initial PR SHA b978f27fe8a04cc5d1628e3825dd9ff23dd53c24.
 - [ ] Confirm source links in README and `AGENTS.md` point to current contracts and precedence.
 - [ ] Ensure examples and demo contact data contain no real customer PII or secrets.
 
@@ -41,7 +41,7 @@
 | OpenAPI bundle + semantic checker | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contracts](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (reference contract) | Automated CI | 2026-11-08 |
 | Prisma reference validation | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Technical contracts](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (design schema only) | Automated CI | 2026-11-08 |
 | PostgreSQL 16 invariants/smoke | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [PostgreSQL invariants job](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221) | PASS (ephemeral reference DB; no production migration) | Automated CI | 2026-11-08 |
-| Markdown → HTML build | 1acc3af68c75046c19aeee16cf185ef4ec112542 | [Docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42467985158) | PASS on current main; this PR must rerun | Automated CI | 2026-11-08 |
+| Markdown → HTML build | b978f27fe8a04cc5d1628e3825dd9ff23dd53c24 | [PR docs workflow](https://github.com/nurgeldiserikbay/services/actions/runs/42495476154) | PASS (HTML rebuild, comparison and structure checks) | Automated CI | 2026-11-08 |
 | Security, UX, product sign-offs | — | No independent sign-off evidence recorded | NOT DONE | Product/security/design owners | 2026-11-08 |
 
 ### Stop conditions
