@@ -5,11 +5,11 @@ References: ADR-0006, ADR-0004, `contracts/openapi.yaml`, `contracts/prisma/sche
 
 ## Latest implementation evidence — 2026-11-09
 
-- Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109), head `fde9510905a01fd49676cbd7e50329da1c347219`, adds bearer-authenticated propose, confirm and decline handlers for accepted requests whose customer has an account. It is a draft PR and is not merged.
+- Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109), head `fde9510905a01fd49676cbd7e50329da1c347219`, adds bearer-authenticated propose, confirm and decline handlers for accepted requests whose customer has an account. It is open for review and is not merged.
 - [Backend foundation CI run 42515494709](https://github.com/nurgeldiserikbay/services-back/actions/runs/42515494709) passed typecheck, build, Prisma validation, migration drift, PostgreSQL 16 migration/seed/smoke, and unit/integration tests on that PR head.
 - Runtime transactions persist revisions, request-version checks, idempotency, domain events, outbox notification intents, cancellation snapshot history and its current projection. Confirmation checks known calendar conflicts; seller reschedule suspends customer reliability penalties until a new agreement. Customer cancellation during a pending seller reschedule remains penalty-free.
 - Guest requests remain fail-closed: schedule challenge/verification and request-scoped `MANAGE_SCHEDULE` issuance are not implemented. No cross-repository staging journey, configured guest OTP delivery, security review or external legal approval is established.
-- Therefore product rule is **accepted**, backend account path is **implemented and CI-verified on a draft PR**, and schedule feature is **not merged or release-ready**. Do not enable guest schedule actions or claim full TECH-03/04 completion.
+- Therefore product rule is **accepted**, backend account path is **implemented and CI-verified in an open PR**, and schedule feature is **not merged or release-ready**. Do not enable guest schedule actions or claim full TECH-03/04 completion.
 
 ## Contract snapshot
 - Prisma `ScheduleProposal` stores request, revision, initiator, proposed UTC timestamps, IANA timezone, status, resolver.
@@ -43,7 +43,7 @@ Still required:
 - Notification delivery failure/retry, frontend integration and a staging request-to-seller journey.
 
 ## Verification gate
-Before merge into implementation repo: validate OpenAPI 3.1, Prisma format/validate, PostgreSQL migration on empty and populated test DB, deterministic parallel tests, auth threat model, kk/ru UX and legal review. None of these runtime checks are attested by this document.
+Backend PR #109 passed typecheck, build, Prisma validation, migration drift, clean PostgreSQL 16 migration/seed/smoke and unit/integration CI on 2026-11-09. Before schedule can be considered release-ready: review and merge the account path; add guest `MANAGE_SCHEDULE` issuance/verification; complete dedicated race, rate-limit and cancellation-audit review; test cross-repository UX and configured OTP delivery; and obtain security, kk/ru accessibility and legal review. These release checks are not established by the passing repository CI.
 
 ## Historical design verification notes
 
