@@ -11,6 +11,19 @@
 | Admin | `nurgeldiserikbay/services-admin` | README explicitly describes **unmounted** moderation and audit UI components; recent Admin foundation CI successful | Privileged login/MFA, backend authorization, audited moderation writes, actual operational admin screens |
 | Canonical docs | `nurgeldiserikbay/services` | 26 acceptance chapters, OpenAPI draft, ADRs and architecture diagrams | Reconciliation of outdated progress snapshots and exact SHA/contract evidence |
 
+## Verified CI snapshot — 2026-11-08
+
+The following exact commits passed GitHub Actions **after merge**:
+
+| Repository | Commit | Run | Verified scope |
+| --- | --- | --- | --- |
+| services-back | `781d485610a077828dfe602dcdd97a14db58d86c` | [Backend foundation CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) | Typecheck, build, Prisma validation, baseline migration drift, PostgreSQL 16 migrate/seed/smoke, required-table assertions, unit/integration tests |
+| services-front | `363e0e8495bc05796cca507ad4a25a65cea03b51` | [Frontend foundation CI](https://github.com/nurgeldiserikbay/services-front/actions/runs/42486560324) | Frontend workflow successful; cross-repository staging E2E not established |
+| services-admin | `1121883b70134e6a0a52ea0187ee2de2bed20b67` | [Admin foundation CI](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42506834383) | Typecheck, tests, build; privileged admin journey not established |
+| services | `55345c9e488f62b89ac47b56f2041ec29216c107` | [Docs CI](https://github.com/nurgeldiserikbay/services/actions/runs/42506859224) | Documentation workflow successful; independent product/security sign-off not established |
+
+Backend PR #100, Admin PR #14 and Docs PR #13 are merged. PostgreSQL migration checks in backend CI **are verified**, but backup/restore, staging, provider-backed OTP and cross-repository E2E remain unverified. These SHA values are an observed snapshot, not a frozen release manifest.
+
 ## Blocking release gates
 
 - [ ] **R1 Contract parity:** pin all four repository SHAs; lint and bundle OpenAPI; test actual backend routes against generated front/admin clients; record discrepancies.
@@ -27,7 +40,7 @@ For every checkbox record: owner, date, four repository commit SHAs, contract ve
 
 ## Priority execution order
 
-1. Resolve backend PR #100 and verify checks on its **exact head commit** before merge; check the guest verification flow test, then rerun post-merge CI.
+1. Backend PR #100 is merged and post-merge CI passed. Next: prove the end-to-end guest verification flow against configured provider and deployed frontend; record negative authorization tests.
 2. Run one integrated staging journey with real PostgreSQL and authorized seller/guest sessions. Do not enable public OTP until provider, ingress and abuse controls are verified.
 3. Implement admin privileged auth and audited moderation API before mounting the currently unmounted presentation components.
 4. Close infrastructure and documentation gates, then publish a versioned release manifest.
