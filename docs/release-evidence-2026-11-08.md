@@ -20,9 +20,9 @@ The following exact commits passed GitHub Actions **after merge**:
 | services-back | `781d485610a077828dfe602dcdd97a14db58d86c` | [Backend foundation CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) | Typecheck, build, Prisma validation, baseline migration drift, PostgreSQL 16 migrate/seed/smoke, required-table assertions, unit/integration tests |
 | services-front | `363e0e8495bc05796cca507ad4a25a65cea03b51` | [Frontend foundation CI](https://github.com/nurgeldiserikbay/services-front/actions/runs/42486560324) | Frontend workflow successful; cross-repository staging E2E not established |
 | services-admin | `1121883b70134e6a0a52ea0187ee2de2bed20b67` | [Admin foundation CI](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42506834383) | Typecheck, tests, build; privileged admin journey not established |
-| services | `55345c9e488f62b89ac47b56f2041ec29216c107` | [Docs CI](https://github.com/nurgeldiserikbay/services/actions/runs/42506859224) | Documentation workflow successful; independent product/security sign-off not established |
+| services | `bfa7dd2575140b452c59de510a994c424be4bcf9` | [Latest docs CI](https://github.com/nurgeldiserikbay/services/actions/runs/42509373255) | Documentation workflow successful; independent product/security sign-off not established |
 
-Backend PR #100, Admin PR #14 and Docs PR #13 are merged. PostgreSQL migration checks in backend CI **are verified**, but backup/restore, staging, provider-backed OTP and cross-repository E2E remain unverified. These SHA values are an observed snapshot, not a frozen release manifest.
+Backend PR #100, Admin PR #14, Docs PR #13 and the staging/readiness PR #16 are merged. PostgreSQL migration checks in backend CI **are verified**, but backup/restore, staging, provider-backed OTP and cross-repository E2E remain unverified. These SHA values are an observed snapshot, not a frozen release manifest.
 
 ## Blocking release gates
 
