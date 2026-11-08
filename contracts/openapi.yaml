@@ -1455,9 +1455,15 @@ paths:
           schema:
             type: string
             enum: [any, at_location, at_customer, online]
+        - name: cursor
+          in: query
+          description: Opaque keyset cursor from the previous page; omit on the first page.
+          schema:
+            type: string
+            maxLength: 512
       responses:
         '200':
-          description: Only published public results; sponsored results must carry an explicit label
+          description: Only published public results; sponsored results must carry an explicit label. Results use deterministic title/kind/id ordering and a stable keyset cursor; the page size is capped at 50.
           content:
             application/json:
               schema:
@@ -1485,6 +1491,7 @@ paths:
                           description: Published professional slug for /professionals/{slug}; null otherwise.
                   next_cursor:
                     type: [string, 'null']
+                    description: Opaque keyset cursor for the next page, or null when there are no more results.
   /requests/{id}/no-show-claims:
     post:
       tags: [Bookings]
