@@ -8,7 +8,7 @@ This section supersedes older CI/unverified labels only for the exact checks lis
 
 | Repository / gate | SHA | Verified result |
 | --- | --- | --- |
-| services docs main | f3cc8b3cf18d8bf4c7f174f9bdf41cb4f1e0f4f1 | [Docs build](https://github.com/nurgeldiserikbay/services/actions/runs/42507877616) and [Pages deployment](https://github.com/nurgeldiserikbay/services/actions/runs/42507877176) pass. Reference Prisma/OpenAPI contract validation remains evidenced at 1acc3af68c75046c19aeee16cf185ef4ec112542 in [run 42467985221](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221). |
+| services docs main | bfa7dd2575140b452c59de510a994c424be4bcf9 | [Docs build](https://github.com/nurgeldiserikbay/services/actions/runs/42509373255) and [Pages deployment](https://github.com/nurgeldiserikbay/services/actions/runs/42509372584) pass. Reference Prisma/OpenAPI contract validation remains evidenced at 1acc3af68c75046c19aeee16cf185ef4ec112542 in [run 42467985221](https://github.com/nurgeldiserikbay/services/actions/runs/42467985221). |
 | services-back main | 781d485610a077828dfe602dcdd97a14db58d86c | [Post-merge CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030) passes typecheck, build, Prisma validation, migration drift, PostgreSQL 16 migrate/seed/smoke and unit/integration tests. PR #100 is merged. |
 | services-front main | 363e0e8495bc05796cca507ad4a25a65cea03b51 | [Foundation CI passes](https://github.com/nurgeldiserikbay/services-front/actions/runs/42486560324); end-to-end journey and real-device evidence remain outstanding. |
 | services-admin main | 1121883b70134e6a0a52ea0187ee2de2bed20b67 | [Post-merge CI passes](https://github.com/nurgeldiserikbay/services-admin/actions/runs/42506834383); admin stays fail-closed pending MFA, onboarding and role-contract decisions. |
@@ -16,6 +16,7 @@ This section supersedes older CI/unverified labels only for the exact checks lis
 ### Current status adjustments
 
 - **Prisma / PostgreSQL:** backend main now passes Prisma validation, migration drift check, committed baseline deploy to clean PostgreSQL 16, seed-twice, constraint smoke and DB-backed unit/integration tests. Production-data backfill, rollback, backup restore and dedicated race-safety evidence remain open.
+- **Schedule agreement:** product rule ADR-0006 is accepted; schema/migration passed backend CI, but backend has no propose/confirm/decline HTTP handlers or guest `MANAGE_SCHEDULE` issuance flow. Do not enable automatic schedule-based penalties.
 - **OpenAPI / typed clients:** reference OpenAPI bundle and semantic contract checks pass. Complete production DTO/error coverage and generated-client integration remain unverified.
 - **CI + E2E:** docs, frontend, admin and backend main CI are green at the listed SHAs. Backend includes a clean PostgreSQL migration/test job. No cross-repository staging E2E or provider-backed OTP delivery evidence is recorded.
 - **G0:** automated reference checks pass, but independent design sign-off is still NOT SIGNED; do not label G0 fully closed.
@@ -74,7 +75,7 @@ For every gate, record:
 
 ## Next recommended bounded work item
 
-Implement and verify provider-backed guest OTP and a cross-repository request-to-seller journey; capture staging evidence, negative ACL cases and retry behavior. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PR #13 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
+Implement schedule proposal/confirm/decline and guest `MANAGE_SCHEDULE` routes against the accepted ADR-0006 contract, then verify provider-backed guest OTP and a cross-repository request-to-seller journey; capture staging evidence, negative ACL cases and retry behavior. Backend baseline migration CI is already green, while production data and rollback evidence remain open. Documentation PRs #13 and #16 and backend PR #100 are merged. Do not claim the product is release-ready solely because documentation and repository CI are green.
 
 ## Update — 2026-11-02, guest schedule API draft
 
