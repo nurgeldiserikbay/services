@@ -6,10 +6,10 @@
 
 | Component | Observed source | Evidence | Missing release proof |
 | --- | --- | --- | --- |
-| Backend | `nurgeldiserikbay/services-back` | README lists catalog, public profiles, guest verification, seller inbox and session modules; recent Backend foundation CI successful | Exact release SHA CI, DB migration/rollback, live OTP, real-DB cross-role E2E, security review |
+| Backend | `nurgeldiserikbay/services-back` | README lists catalog, public profiles, guest verification, seller inbox and session modules; recent Backend foundation CI successful | Production backfill/rollback and restore, live OTP, cross-repo staging E2E and independent security review |
 | Frontend | `nurgeldiserikbay/services-front` | README documents kk/ru search, guest/seller UI, gated notification and OTP BFF; recent Frontend foundation CI successful | Gated flows enabled only after secure provider setup, backend-connected E2E, PWA/mobile accessibility and staging |
 | Admin | `nurgeldiserikbay/services-admin` | README explicitly describes **unmounted** moderation and audit UI components; recent Admin foundation CI successful | Privileged login/MFA, backend authorization, audited moderation writes, actual operational admin screens |
-| Canonical docs | `nurgeldiserikbay/services` | 26 acceptance chapters, OpenAPI draft, ADRs and architecture diagrams | Reconciliation of outdated progress snapshots and exact SHA/contract evidence |
+| Canonical docs | `nurgeldiserikbay/services` | 26 acceptance chapters, OpenAPI draft, ADRs and architecture diagrams | Current CI snapshots are recorded here and in the [readiness register](enterprise-release-readiness.md); complete UX/API contradiction review and independent approval remain open |
 
 ## Verified CI snapshot — 2026-11-08
 
