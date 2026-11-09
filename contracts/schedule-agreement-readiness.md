@@ -1,14 +1,15 @@
 # Schedule agreement — integration readiness checklist
 
-Status: **ACCEPTED as a product rule; runtime API not implemented**, evidence updated 2026-11-08.
+Status: **Accepted product rule; account and guest schedule runtime are implemented in open PR #109; latest guest changes await CI validation. Not merged or released.**
 References: ADR-0006, ADR-0004, `contracts/openapi.yaml`, `contracts/prisma/schema.prisma`.
 
-## Latest implementation evidence — 2026-11-08
+## Latest implementation evidence — 2026-11-09
 
-- Backend main `781d485610a077828dfe602dcdd97a14db58d86c` passes the [post-merge CI](https://github.com/nurgeldiserikbay/services-back/actions/runs/42506854030): Prisma validation and migration-drift check, clean PostgreSQL 16 migration, safe seed, constraint smoke and unit/integration suite.
-- The committed backend schema and baseline migration contain `ScheduleProposal`, `CancellationSnapshotRevision`, request schedule reconciliation fields and the one-active-proposal database constraint. This verifies persisted structures and migration execution, not schedule-agreement behavior.
-- Backend source currently has no `schedule-proposals` HTTP handlers for propose, confirm or decline. The routes in `contracts/openapi.yaml` remain design-only. Guest `MANAGE_SCHEDULE` issuance/verification is also not implemented as a schedule API flow.
-- Therefore ADR-0006 is **product-accepted**, database structures are **migration-verified**, and schedule-agreement runtime is **not implemented**. Do not close TECH-03/04 or enable automatic schedule-based penalties.
+- Backend PR [#109](https://github.com/nurgeldiserikbay/services-back/pull/109), head `fde9510905a01fd49676cbd7e50329da1c347219`, adds bearer-authenticated propose, confirm and decline handlers for accepted requests whose customer has an account. It is open for review and is not merged.
+- [Backend foundation CI run 42515494709](https://github.com/nurgeldiserikbay/services-back/actions/runs/42515494709) passed typecheck, build, Prisma validation, migration drift, PostgreSQL 16 migration/seed/smoke, and unit/integration tests on that PR head.
+- Runtime transactions persist revisions, request-version checks, idempotency, domain events, outbox notification intents, cancellation snapshot history and its current projection. Confirmation checks known calendar conflicts; seller reschedule suspends customer reliability penalties until a new agreement. Customer cancellation during a pending seller reschedule remains penalty-free.
+- Guest `MANAGE_SCHEDULE` challenge, verification and request-bound schedule authorization are now implemented in PR #109. The latest commit `589a13dc17d7948f4b04aa968774fd4c2aac3b7a` passed full backend CI run [42517736326](https://github.com/nurgeldiserikbay/services-back/actions/runs/42517736326); no provider-backed OTP, cross-repository staging journey, security review or external legal approval is established. Guest routes remain disabled unless deployment gates and a reviewed delivery provider are configured.
+- Therefore product rule is **accepted**, backend account path is **implemented and CI-verified in an open PR**, and schedule feature is **not merged or release-ready**. Do not enable guest schedule actions or claim full TECH-03/04 completion.
 
 ## Contract snapshot
 - Prisma `ScheduleProposal` stores request, revision, initiator, proposed UTC timestamps, IANA timezone, status, resolver.
@@ -16,34 +17,37 @@ References: ADR-0006, ADR-0004, `contracts/openapi.yaml`, `contracts/prisma/sche
 - API design includes POST propose, POST confirm, POST decline, each with Idempotency-Key and If-Match.
 - Legacy seller-only schedule PATCH is deprecated and must not establish a penalty-bearing confirmed time.
 
-## Blocking contract gaps to settle before coding
-1. **Guest capability gap (partially documented):** Prisma now defines `MANAGE_SCHEDULE`, and ADR-0005 includes a proposed contact re-verification flow. OpenAPI now describes the two guest schedule challenge/verify routes. Their presence is design-only: backend authorization, OTP, token expiry, negative tests and contract validation remain outstanding; no guest schedule action may be enabled until verified. `READ_CANCEL` remains insufficient.
-2. **Active revision:** Partial unique index permits one pending proposal; a proposed revision must be monotonically allocated under a per-request lock. On supersede, resolve old row before inserting new row in same transaction.
-3. **Cancellation snapshot (partially documented):** `CancellationSnapshotRevision` now records append-only agreement history, while `CancellationSnapshot` is the current projection. The atomic update protocol and linkage from cancellation decisions to the evaluated revision are not fully specified or tested.
-4. **Seller-initiated reschedule (partially documented):** `ServiceRequest.customerPenaltySuspended` now exists. Transaction rules for setting/clearing it and concurrency tests remain required.
-5. **Confirmed slot conflicts:** BusyBlock exclusion exists, but no resource reservation before confirmation. Confirm action must atomically create a request-linked busy block if a selected professional and bookable calendar are in use. A no-calendar offer cannot promise free slot.
-6. **Time validation:** `proposed_end_at > proposed_start_at`, UTC transport, IANA timezone canonical validation, ambiguous DST handling and horizon limits are necessary; SQL alone does not validate full IANA semantics.
-7. **Notification privacy:** New schedule proposal, confirmation, decline, supersede must append domain outbox records; recipients depend on actor. No promise of delivered SMS/WhatsApp before worker status is known.
+## Remaining implementation and release gaps
+
+1. **Guest capability:** PR #109 now implements request-scoped `MANAGE_SCHEDULE` challenge issuance/verification and schedule authorization. The latest migration/flow still needs CI and PostgreSQL validation, cross-request/replay/expiry negative cases, guest UI, and provider/security review. `READ_CANCEL` is insufficient.
+2. **Concurrency coverage:** request row lock and version/idempotency checks are implemented. CI covers replay, confirmation, snapshots and notifications; a dedicated concurrent proposal/confirm/cancel race suite remains open.
+3. **Cancellation audit linkage:** immutable agreement snapshots and current projection are updated atomically. Cancellation event/audit linkage to the exact evaluated schedule revision still needs review.
+4. **Calendar validation:** confirmation writes or updates a busy block for an enabled, approved calendar and relies on the database exclusion constraint. Dedicated personal/company slot-conflict race tests and validation against allocation hours remain open.
+5. **Rate limiting and transport:** API uses bearer auth, If-Match and Idempotency-Key. Endpoint-specific rate limiting and complete error/contract integration remain to be verified.
+6. **Time horizon:** UTC/IANA/local-wall-time/offset validation rejects DST gaps and mismatched fold offsets. ADR-0006 leaves maximum horizon open; no horizon is invented in the implementation.
+7. **Notifications and UX:** domain outbox plus in-app intents are atomic. Delivery/retry evidence, guest UX, kk/ru copy, accessibility and cross-repository behavior remain outstanding.
 
 ## Integration and negative tests
-- Repeated POST proposal same key -> single revision + outbox event.
-- Different payload same key -> 409 without new revision.
-- Concurrent proposal vs proposal -> one pending row; loser sees conflict.
-- Initiator confirms own proposal -> forbidden, unchanged state.
-- Recipient with stale request version -> conflict, no snapshot/busy.
-- Guest `READ_CANCEL` token cannot confirm/decline until dedicated schedule scope exists.
-- Confirmed reschedule retains historical deadline and suppresses inappropriate old/new penalty.
-- Schedule proposal vs cancellation race -> no confirmed proposal on a terminal request.
-- Calendar slot confirmation vs another company/personal booking -> no overlapping busy.
-- Failed notification after DB commit -> request state preserved; delivery retried separately.
-- An offer without calendar and no confirmed time -> no automatic customer late penalty.
+
+Verified by backend PR #109 CI:
+- Same idempotency key replays a single proposal; changed payload with that key conflicts.
+- Seller proposal suspends customer penalty eligibility; recipient confirmation atomically records schedule and cancellation snapshot history.
+- Customer can cancel without reliability penalty while seller reschedule is pending.
+- Request receives outbox events and counterparty/participant in-app intents.
+
+Still required:
+- Concurrent proposal/confirm/cancel races and stale-version behavior.
+- Initiator cannot confirm its own proposal; unknown or revoked participants remain denied.
+- Calendar conflict tests across personal/company contexts.
+- Verify the implemented guest flow: `READ_CANCEL` cannot write, and `MANAGE_SCHEDULE` is limited to the request/contact; add cross-request, expiry, replay and revoked-capability DB cases.
+- Notification delivery failure/retry, frontend integration and a staging request-to-seller journey.
 
 ## Verification gate
-Before merge into implementation repo: validate OpenAPI 3.1, Prisma format/validate, PostgreSQL migration on empty and populated test DB, deterministic parallel tests, auth threat model, kk/ru UX and legal review. None of these runtime checks are attested by this document.
+Backend PR #109 passed typecheck, build, Prisma validation, migration drift, clean PostgreSQL 16 migration/seed/smoke and unit/integration CI on 2026-11-09 at its previous account-only head. Guest schedule changes at `589a13dc17d7948f4b04aa968774fd4c2aac3b7a` passed typecheck, build, Prisma validation, migration drift, PostgreSQL 16 migration/seed/smoke and unit/integration CI in [run 42517736326](https://github.com/nurgeldiserikbay/services-back/actions/runs/42517736326). Dedicated guest negative/race coverage and provider-backed delivery remain open. Before schedule can be considered release-ready: review and merge the PR; add dedicated race, rate-limit and cancellation-audit coverage; test cross-repository UX and configured OTP delivery; and obtain security, kk/ru accessibility and legal review.
 
-## Reviewed against the 2026-11-02 feature branch
+## Historical design verification notes
 
-Documented and partly database-verified: `MANAGE_SCHEDULE` enum, proposed ADR-0005 guest re-verification addendum, versioned schedule proposal, immutable cancellation history, flag to suppress penalties during seller reschedules, and UTC cancellation deadline algorithm. Backend main CI now validates and deploys committed migrations to clean PostgreSQL 16 and runs DB-backed tests. **Still not proven**: schedule proposal/confirm/decline runtime handlers, guest schedule capability issuance, end-to-end authorization, auth threat model, client behavior and external legal requirements. Do not call TECH-03/04 complete.
+The 2026-11-02 review verified only proposed schema/API design. Backend PR #109 now includes account and guest schedule paths; account-only CI evidence does not validate the new guest changes. Runtime provider delivery, full end-to-end client behavior, independent security review and external legal requirements remain unverified.
 
 ## Correction after OpenAPI YAML fix (2026-11-02)
 

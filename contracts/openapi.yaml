@@ -571,6 +571,16 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ResourceId'
         - $ref: '#/components/parameters/GuestCapabilityHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [locale]
+              properties:
+                locale: {type: string, enum: [kk, ru]}
       responses:
         '202':
           description: Generic anti-enumeration response
