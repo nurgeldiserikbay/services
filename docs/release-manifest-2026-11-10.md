@@ -29,3 +29,15 @@ Status: **CI baseline only; NOT a production release approval**. This snapshot p
 The backend's `20261110_platform_admin_foundation` migration was amended to avoid recreating tables already made by earlier migrations. Before deploying to any persistent database, inspect `_prisma_migrations` and reconcile migration checksums/history if necessary. Do **not** reset a persistent database to make CI green.
 
 Reference: [acceptance checklist](ru/26-acceptance-checklist.md). Do not mark any gate `verified` without reproducible evidence for the pinned release.
+
+## CI follow-up verified on 2026-11-10
+
+- Docs HTML validation: [run 42834234284](https://github.com/nurgeldiserikbay/services/actions/runs/42834234284) — success on `c8362a91b15c0eebacddb5d681edf6ea7419c46d`.
+- GitHub Pages build/deployment: [run 42834234383](https://github.com/nurgeldiserikbay/services/actions/runs/42834234383) — success on the same SHA.
+- Documentation main subsequently points to this release manifest; the original four-repository SHA snapshot above is intentionally immutable evidence, not a claim that all heads remain unchanged.
+
+## Contract-to-runtime traceability (inspection only)
+
+The backend `src/modules/app.module.ts` currently imports catalog, geography, public offers, guest verification, seller inbox/decision, schedule proposal, account bearer sessions, private account login, person notifications and platform admin moderation modules. The canonical `contracts/openapi.yaml` describes itself as a **partial design contract** (v0.5.1) and uses a placeholder server URL. Neither module imports nor a design OpenAPI file proves that live HTTP routes and schemas match. The admin frontend README also explicitly describes some UI components as **unmounted**.
+
+Before enabling any feature flag or calling G1–G3 verified, collect an endpoint matrix with columns: method/path, OpenAPI operation, mounted backend controller, frontend BFF consumer, admin consumer, auth/feature flag, response schema, DB/E2E test and CI link. Fail the release on undocumented privilege-bearing routes or unverified client/server DTO differences. The minimum journeys are public search, guest verification/request, seller decision, schedule confirmation/cancellation, notification inbox and scoped admin moderation. Do not infer real OTP delivery or an active admin UI from test success.
