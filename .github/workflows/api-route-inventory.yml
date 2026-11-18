@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'contracts/openapi.yaml'
+      - 'contracts/runtime-route-inventory.json'
       - 'docs/api-runtime-route-inventory-2026-11-18.md'
       - 'scripts/*api_route_inventory.py'
       - '.github/workflows/api-route-inventory.yml'
@@ -10,6 +11,7 @@ on:
     branches: [main]
     paths:
       - 'contracts/openapi.yaml'
+      - 'contracts/runtime-route-inventory.json'
       - 'docs/api-runtime-route-inventory-2026-11-18.md'
       - 'scripts/*api_route_inventory.py'
       - '.github/workflows/api-route-inventory.yml'
