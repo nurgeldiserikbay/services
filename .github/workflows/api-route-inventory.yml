@@ -15,6 +15,8 @@ on:
       - 'docs/api-runtime-route-inventory-2026-11-18.md'
       - 'scripts/*api_route_inventory.py'
       - '.github/workflows/api-route-inventory.yml'
+  schedule:
+    - cron: '23 3 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,6 +26,19 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout current backend inventory
+        uses: actions/checkout@v4
+        with:
+          repository: nurgeldiserikbay/services-back
+          ref: main
+          path: .backend-inventory
+          persist-credentials: false
+      - name: Compare cross-repository snapshots
+        run: |
+          git -C .backend-inventory rev-parse HEAD
+          cmp contracts/runtime-route-inventory.json .backend-inventory/contracts/runtime-route-inventory.json
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
