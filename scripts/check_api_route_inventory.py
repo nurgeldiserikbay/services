@@ -5,6 +5,7 @@ No network calls or third-party dependencies. This checks design/inventory drift
 not live backend routing, schema parity or authorization.
 """
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -89,13 +90,33 @@ def verify(design, inventory):
         raise ValueError("\n".join(failures))
     return counts
 
+def verify_snapshot(inventory, snapshot):
+    if not isinstance(snapshot, dict) or type(snapshot.get("schemaVersion")) is not int or snapshot["schemaVersion"] != 1:
+        raise ValueError("unsupported runtime snapshot schema")
+    routes = snapshot.get("routes")
+    if not isinstance(routes, list) or not routes:
+        raise ValueError("missing runtime snapshot routes")
+    expected = set()
+    for route in routes:
+        if not isinstance(route, str) or not re.fullmatch(r"(" + METHODS + r") /\S*", route):
+            raise ValueError("invalid runtime snapshot route")
+        if route in expected:
+            raise ValueError("duplicate runtime snapshot route")
+        expected.add(route)
+    actual = {m + " " + p for m, p, _ in inventory_rows(inventory, "## Controller declarations", "## Design operations without matching declaration", True)}
+    if expected != actual:
+        raise ValueError("runtime snapshot differs from documented controller declarations")
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--design", type=Path, default=ROOT / "contracts/openapi.yaml")
     parser.add_argument("--inventory", type=Path, default=ROOT / "docs/api-runtime-route-inventory-2026-11-18.md")
+    parser.add_argument("--snapshot", type=Path, default=ROOT / "contracts/runtime-route-inventory.json")
     args = parser.parse_args()
     try:
-        counts = verify(args.design.read_text(encoding="utf-8"), args.inventory.read_text(encoding="utf-8"))
+        report = args.inventory.read_text(encoding="utf-8")
+        counts = verify(args.design.read_text(encoding="utf-8"), report)
+        verify_snapshot(report, json.loads(args.snapshot.read_text(encoding="utf-8")))
     except (OSError, ValueError) as exc:
         parser.exit(1, f"Route inventory drift: {exc}\n")
     print("Inventory consistent: design=%d controllers=%d matches=%d gaps=%d runtime-only=%d" % counts)
