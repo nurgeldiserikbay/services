@@ -1,0 +1,29 @@
+name: API route inventory
+on:
+  pull_request:
+    paths:
+      - 'contracts/openapi.yaml'
+      - 'docs/api-runtime-route-inventory-2026-11-18.md'
+      - 'scripts/*api_route_inventory.py'
+      - '.github/workflows/api-route-inventory.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/openapi.yaml'
+      - 'docs/api-runtime-route-inventory-2026-11-18.md'
+      - 'scripts/*api_route_inventory.py'
+      - '.github/workflows/api-route-inventory.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_api_route_inventory.py
+      - run: python -m unittest discover -s scripts -p test_api_route_inventory.py
