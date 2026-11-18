@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
@@ -31,6 +32,22 @@ class InventoryTest(unittest.TestCase):
     def test_incorrect_count(self):
         with self.assertRaisesRegex(ValueError, "incorrect inventory count"):
             inventory.verify(self.design, self.report.replace("Design operations: 65", "Design operations: 64", 1))
+
+    def test_snapshot_baseline(self):
+        snapshot = json.loads((ROOT / "contracts/runtime-route-inventory.json").read_text(encoding="utf-8"))
+        inventory.verify_snapshot(self.report, snapshot)
+
+    def test_snapshot_drift(self):
+        snapshot = json.loads((ROOT / "contracts/runtime-route-inventory.json").read_text(encoding="utf-8"))
+        snapshot["routes"].pop()
+        with self.assertRaisesRegex(ValueError, "runtime snapshot differs"):
+            inventory.verify_snapshot(self.report, snapshot)
+
+    def test_snapshot_duplicate(self):
+        snapshot = json.loads((ROOT / "contracts/runtime-route-inventory.json").read_text(encoding="utf-8"))
+        snapshot["routes"].append(snapshot["routes"][0])
+        with self.assertRaisesRegex(ValueError, "duplicate runtime snapshot"):
+            inventory.verify_snapshot(self.report, snapshot)
 
     def test_unsupported_inline_path(self):
         changed = self.design.replace("paths:\n", "paths:\n  /new-drift: {}\n", 1)
