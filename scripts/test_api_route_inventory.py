@@ -14,7 +14,7 @@ class InventoryTest(unittest.TestCase):
         self.report = (ROOT / "docs/api-runtime-route-inventory-2026-11-18.md").read_text(encoding="utf-8")
 
     def test_baseline(self):
-        self.assertEqual(inventory.verify(self.design, self.report), (65, 28, 23, 42, 5))
+        self.assertEqual(inventory.verify(self.design, self.report), (65, 46, 29, 36, 17))
 
     def test_undocumented_operation(self):
         changed = self.design.replace("paths:\n", "paths:\n  /new-drift:\n    get:\n", 1)
@@ -27,7 +27,7 @@ class InventoryTest(unittest.TestCase):
             inventory.verify(changed, self.report)
 
     def test_parameter_alias(self):
-        self.assertEqual(inventory.verify(self.design.replace("/requests/{id}:", "/requests/{requestId}:", 1), self.report), (65, 28, 23, 42, 5))
+        self.assertEqual(inventory.verify(self.design.replace("/requests/{id}:", "/requests/{requestId}:", 1), self.report), (65, 46, 29, 36, 17))
 
     def test_incorrect_count(self):
         with self.assertRaisesRegex(ValueError, "incorrect inventory count"):
@@ -35,6 +35,20 @@ class InventoryTest(unittest.TestCase):
 
     def test_snapshot_baseline(self):
         snapshot = json.loads((ROOT / "contracts/runtime-route-inventory.json").read_text(encoding="utf-8"))
+        inventory.verify_snapshot(self.report, snapshot)
+
+    def test_new_account_and_otp_routes_in_current_backend_snapshot(self):
+        snapshot = json.loads((ROOT / "contracts/runtime-route-inventory.json").read_text(encoding="utf-8"))
+        expected = {
+            "GET /account/requests",
+            "POST /account/requests",
+            "POST /account/requests/{id}/complete",
+            "POST /auth/private/account/challenges",
+            "POST /guest-requests/{id}/completion/challenges",
+            "POST /guest-requests/{id}/completion/challenges/{challengeId}/verify",
+            "POST /guest-requests/{id}/completion/confirm",
+        }
+        self.assertTrue(expected.issubset(set(snapshot["routes"])))
         inventory.verify_snapshot(self.report, snapshot)
 
     def test_snapshot_drift(self):
