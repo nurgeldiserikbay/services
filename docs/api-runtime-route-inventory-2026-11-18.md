@@ -1,47 +1,65 @@
-# API route inventory — 2026-11-18
+# API route inventory — 2026-11-23 snapshot (historical filename retained)
 
 Status: source inspection only; **not contract parity or release acceptance**.
 
-Pinned sources: [backend f306742](https://github.com/nurgeldiserikbay/services-back/tree/f30674204571a8993d21e2a852c44dc3e111f25f), [design OpenAPI 88b402e](https://github.com/nurgeldiserikbay/services/blob/88b402ed0bbff4ed9e7af1a98deb0e4ea6b0ec5a/contracts/openapi.yaml). Inspected controllers listed in AppModule and its directly imported feature modules; compared HTTP method and relative route template, normalizing parameter names only. Global prefix, conditional availability, authorization, schema and actual HTTP behavior are not established by this comparison.
+Pinned sources: [backend main `59629b57f333` snapshot blob](https://github.com/nurgeldiserikbay/services-back/blob/main/contracts/runtime-route-inventory.json) (runtime source routes) and design OpenAPI in this repository. Historical controller names are preserved from 2026-11-18; any newly indexed route is deliberately labeled **Backend static inventory (controller not re-audited)** until independently inspected. This is a **static AppModule snapshot only**, not proof of route accessibility, DTO/auth parity, global prefix, production activation or staging acceptance.
 
 - Design operations: 65
-- Controller route declarations: 28
-- Method/path shape matches: 23
-- Design operations without a matching inspected declaration: 42
-- Inspected declarations without a design operation: 5
+- Controller route declarations: 46
+- Method/path shape matches: 29
+- Design operations without a matching inspected declaration: 36
+- Inspected declarations without a design operation: 17
 
 ## Controller declarations
 
 | Method | Path | Controller | Design shape |
 |---|---|---|---|
-| GET | `/health` | HealthController | Missing |
-| GET | `/search` | CatalogController | Match only |
-| GET | `/professions` | TaxonomyController | Match only |
-| GET | `/professionals/{slug}` | PublicProfileController | Match only |
-| GET | `/organizations/{id}` | PublicProfileController | Match only |
-| GET | `/geo/countries` | GeographyController | Match only |
+| DELETE | `/auth/sessions/{id}` | AccountBearerSessionController | Missing |
+| GET | `/account/requests` | Backend static inventory (controller not re-audited) | Missing |
+| GET | `/admin/moderation/cases` | PlatformModerationReadController | Missing |
+| GET | `/auth/sessions` | AccountBearerSessionController | Match only |
 | GET | `/geo/areas` | GeographyController | Match only |
 | GET | `/geo/cities` | GeographyController | Match only |
-| GET | `/service-offers/{id}` | PublicOfferController | Match only |
-| POST | `/requests/{id}/accept` | SellerDecisionHttpController | Match only |
-| POST | `/requests/{id}/decline` | SellerDecisionHttpController | Match only |
-| POST | `/requests/{id}/schedule-proposals` | ScheduleProposalHttpController | Match only |
-| POST | `/requests/{id}/schedule-proposals/{proposalId}/decline` | ScheduleProposalHttpController | Match only |
-| POST | `/requests/{id}/schedule-proposals/{proposalId}/confirm` | ScheduleProposalHttpController | Match only |
-| GET | `/me/seller-requests` | SellerInboxController | Match only |
-| GET | `/requests/{id}` | GuestRequestStatusHttpController | Match only |
-| POST | `/guest-requests` | GuestCreateHttpController | Match only |
-| GET | `/auth/sessions` | AccountBearerSessionController | Match only |
-| DELETE | `/auth/sessions/{id}` | AccountBearerSessionController | Missing |
-| POST | `/auth/logout` | AccountBearerSessionController | Match only |
-| POST | `/guest-requests/{requestId}/schedule-access/challenges` | GuestScheduleAccessHttpController | Match only |
-| POST | `/guest-requests/{requestId}/schedule-access/challenges/{challengeId}/verify` | GuestScheduleAccessHttpController | Match only |
+| GET | `/geo/countries` | GeographyController | Match only |
+| GET | `/health` | HealthController | Missing |
+| GET | `/me` | Backend static inventory (controller not re-audited) | Match only |
 | GET | `/me/notifications` | PersonInboxController | Match only |
+| GET | `/me/professional-profiles` | Backend static inventory (controller not re-audited) | Match only |
+| GET | `/me/professional-profiles/{id}/appealable-rejection` | Backend static inventory (controller not re-audited) | Missing |
+| GET | `/me/professional-profiles/{id}/preview` | Backend static inventory (controller not re-audited) | Missing |
+| GET | `/me/seller-requests` | SellerInboxController | Match only |
+| GET | `/organizations/{id}` | PublicProfileController | Match only |
+| GET | `/professionals/{slug}` | PublicProfileController | Match only |
+| GET | `/professions` | TaxonomyController | Match only |
+| GET | `/requests/{id}` | GuestRequestStatusHttpController | Match only |
+| GET | `/search` | CatalogController | Match only |
+| GET | `/service-definitions` | Backend static inventory (controller not re-audited) | Match only |
+| GET | `/service-offers/{id}` | PublicOfferController | Match only |
+| PATCH | `/me/professional-profiles/{id}` | Backend static inventory (controller not re-audited) | Match only |
+| POST | `/account/requests` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/account/requests/{id}/complete` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/admin/moderation/cases/{id}/decision` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/admin/session/logout` | PlatformAdminLogoutController | Missing |
+| POST | `/auth/logout` | AccountBearerSessionController | Match only |
+| POST | `/auth/private/account/challenges` | Backend static inventory (controller not re-audited) | Missing |
 | POST | `/auth/private/account/verify` | AccountLoginPrivateController | Missing |
+| POST | `/guest-requests` | GuestCreateHttpController | Match only |
 | POST | `/guest-requests/challenges` | GuestOtpHttpController | Match only |
 | POST | `/guest-requests/challenges/{id}/verify` | GuestOtpHttpController | Match only |
-| GET | `/admin/moderation/cases` | PlatformModerationReadController | Missing |
-| POST | `/admin/session/logout` | PlatformAdminLogoutController | Missing |
+| POST | `/guest-requests/{id}/completion/challenges` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/guest-requests/{id}/completion/challenges/{challengeId}/verify` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/guest-requests/{id}/completion/confirm` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/guest-requests/{requestId}/schedule-access/challenges` | GuestScheduleAccessHttpController | Match only |
+| POST | `/guest-requests/{requestId}/schedule-access/challenges/{challengeId}/verify` | GuestScheduleAccessHttpController | Match only |
+| POST | `/me/professional-profiles` | Backend static inventory (controller not re-audited) | Match only |
+| POST | `/me/professional-profiles/{id}/appeals` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/me/professional-profiles/{id}/publish` | Backend static inventory (controller not re-audited) | Missing |
+| POST | `/requests/{id}/accept` | SellerDecisionHttpController | Match only |
+| POST | `/requests/{id}/cancel` | Backend static inventory (controller not re-audited) | Match only |
+| POST | `/requests/{id}/decline` | SellerDecisionHttpController | Match only |
+| POST | `/requests/{id}/schedule-proposals` | ScheduleProposalHttpController | Match only |
+| POST | `/requests/{id}/schedule-proposals/{proposalId}/confirm` | ScheduleProposalHttpController | Match only |
+| POST | `/requests/{id}/schedule-proposals/{proposalId}/decline` | ScheduleProposalHttpController | Match only |
 
 ## Design operations without matching declaration
 
@@ -51,9 +69,7 @@ Pinned sources: [backend f306742](https://github.com/nurgeldiserikbay/services-b
 | POST | `/auth/challenges/{id}/verify` |
 | POST | `/auth/refresh` |
 | POST | `/auth/logout-all` |
-| GET | `/service-definitions` |
 | POST | `/organizations` |
-| PATCH | `/me/professional-profiles/{id}` |
 | PUT | `/professional-profiles/{id}/company-views/{organization_id}/permissions` |
 | PUT | `/organizations/{id}/professionals/{profile_id}/view` |
 | POST | `/service-offers` |
@@ -66,12 +82,8 @@ Pinned sources: [backend f306742](https://github.com/nurgeldiserikbay/services-b
 | PUT | `/me/availability-allocations` |
 | GET | `/public-availability` |
 | DELETE | `/me/saved-items/{id}` |
-| GET | `/me` |
-| GET | `/me/professional-profiles` |
-| POST | `/me/professional-profiles` |
 | POST | `/me/professional-profiles/{id}/lifecycle` |
 | POST | `/organizations/{id}/affiliation-invites` |
-| POST | `/requests/{id}/cancel` |
 | GET | `/requests/{id}/cancellation-preview` |
 | GET | `/service-offers/{id}/cancellation-policy` |
 | PUT | `/service-offers/{id}/cancellation-policy` |
