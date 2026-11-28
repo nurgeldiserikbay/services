@@ -1,0 +1,58 @@
+name: Integrated local demo smoke
+on:
+  pull_request:
+    paths: ['demo/**', '.github/workflows/demo-smoke.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: services
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nurgeldiserikbay/services-back
+          ref: 50591af672500601557323ef238748243d9d9a4f
+          path: services-back
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nurgeldiserikbay/services-front
+          ref: 9c2f6d73e5311a4a6bfa2b2818f59474392d648c
+          path: services-front
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nurgeldiserikbay/services-admin
+          ref: 096746df55453ecfa205c53a05566b5c95946f5c
+          path: services-admin
+          persist-credentials: false
+      - name: Validate and boot isolated stack
+        working-directory: services/demo
+        run: |
+          docker compose config --quiet
+          docker compose up -d
+      - name: Verify catalog API and web pages
+        working-directory: services/demo
+        run: |
+          set -euo pipefail
+          for port in 3000 3002; do
+            ready=0
+            for attempt in {1..90}; do
+              if curl --connect-timeout 2 --max-time 20 --fail --silent "http://localhost:$port/$(test "$port" = 3000 && echo kk || echo api/health)" >/dev/null; then ready=1; break; fi
+              sleep 5
+            done
+            test "$ready" = 1
+          done
+          docker compose exec -T backend node -e "fetch('http://127.0.0.1:3001/v1/search?scope=global&q=Demo').then(async r=>{if(!r.ok)throw Error('search HTTP');const x=await r.json();if(!x.items.some(i=>i.title.includes('Demo:')))throw Error('no synthetic result')}).catch(()=>process.exit(1))"
+          curl --connect-timeout 2 --max-time 30 --fail --silent http://localhost:3000/ru >/dev/null
+          curl --connect-timeout 2 --max-time 30 --fail --silent http://localhost:3000/kk/services/10000000-0000-4000-8000-000000000007 | grep -F 'Demo:'
+      - name: Tear down disposable stack
+        if: always()
+        working-directory: services/demo
+        run: docker compose down -v
