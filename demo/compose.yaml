@@ -1,0 +1,70 @@
+name: services-local-demo
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: services_demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: local-demo-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d services_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - demo-db:/var/lib/postgresql/data
+  backend:
+    image: node:22-bookworm
+    working_dir: /app
+    volumes:
+      - ../../services-back:/app:ro
+      - backend-work:/work
+      - ./seed.sql:/demo/seed.sql:ro
+    environment:
+      DATABASE_URL: postgresql://demo:local-demo-only@db:5432/services_demo
+      HOST: 0.0.0.0
+      PORT: "3001"
+      NODE_ENV: development
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["bash", "-ec", "tar -C /app --exclude=.git --exclude=node_modules --exclude=.next --exclude=.env --exclude='.env.*' -cf - . | tar -C /work -xf -; cd /work; npm ci --no-audit --no-fund; npm run db:migrate; npm run db:seed:geo; node -e \"const {Client}=require('pg');const fs=require('fs');(async()=>{const db=new Client({connectionString:process.env.DATABASE_URL});await db.connect();try{await db.query(fs.readFileSync('/demo/seed.sql','utf8'))}finally{await db.end()}})().catch(()=>process.exit(1))\"; npm run build; exec npm start"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/v1/professions').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+  web:
+    image: node:22-bookworm
+    working_dir: /work
+    volumes:
+      - ../../services-front:/app:ro
+      - web-work:/work
+    environment:
+      SERVICES_API_BASE_URL: http://backend:3001/v1
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: ["bash", "-ec", "tar -C /app --exclude=.git --exclude=node_modules --exclude=.next --exclude=.env --exclude='.env.*' -cf - . | tar -C /work -xf -; corepack enable; pnpm install --frozen-lockfile; cd apps/web; exec pnpm dev --hostname 0.0.0.0 --port 3000"]
+    ports:
+      - "127.0.0.1:3000:3000"
+  admin:
+    image: node:22-bookworm
+    working_dir: /work
+    volumes:
+      - ../../services-admin:/app:ro
+      - admin-work:/work
+    environment:
+      SERVICES_API_BASE_URL: http://backend:3001/v1
+      NEXT_TELEMETRY_DISABLED: "1"
+    command: ["bash", "-ec", "tar -C /app --exclude=.git --exclude=node_modules --exclude=.next --exclude=.env --exclude='.env.*' -cf - . | tar -C /work -xf -; corepack enable; pnpm install --frozen-lockfile; exec pnpm dev --hostname 0.0.0.0 --port 3002"]
+    ports:
+      - "127.0.0.1:3002:3002"
+volumes:
+  demo-db:
+  backend-work:
+  web-work:
+  admin-work:
